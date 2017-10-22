@@ -1,5 +1,7 @@
 # Paper Plane
 
+[![Build Status](https://travis-ci.org/TonnyL/PaperPlane.svg?branch=master)](https://travis-ci.org/TonnyL/PaperPlane)
+
 <div align="center">
 	<img src="./art/ic_launcher-web.png" width="128" alt="logo">
 </div>
@@ -15,21 +17,15 @@ Paper Plane is an Android reading app containing articles from [Zhihu Daily](htt
 To open this project in Android Studio, begin by checking out of the branches, and then open the `PaperPlane/` dictionary in Android Studio. The following series of steps illustrate how to open the `PaperPlane` branch.
 
 Clone the repository:
+
 ```
-git clone https://github.com/marktony/PaperPlane.git
+git clone https://github.com/TonnyL/PaperPlane.git
 ```
 
-checkout the master branch:
-```
-git checkout master
-```
-
-Note: If you want to review a different branch, replace the `master` with the name you want to checkout like the `dev` (Confirm if the branch does exists).
-
-Finally open the `PaperPlane/` directory in Android Studio.
+Open the `PaperPlane/` directory in Android Studio.
 
 ## Google Play
-[![google-play-badge](art/google-play-badge.png)](https://play.google.com/store/apps/details?id=com.marktony.zhihudaily)
+[<img src="./art/google_play_badge.png" alt="Google Play Badge" height="80">](https://play.google.com/store/apps/details?id=com.marktony.zhihudaily)
 
 ## Libraries
 | Library     | Intro     |
@@ -50,17 +46,4 @@ There is an entry in the app for the [GitHub Contributors page](https://github.c
 [wbinarytree](https://github.com/wbinarytree)
 
 ## License
-
-    Copyright 2016 lizhaotailang
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+PaperPlane is under an Apache2.0 license. See the [LICENSE](LICENSE) for more info.
