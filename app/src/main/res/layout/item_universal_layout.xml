@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2016 lizhaotailang
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,36 +14,39 @@
   ~ limitations under the License.
   -->
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_height"
     android:background="@color/colorBaseBackground"
     android:foreground="?android:attr/selectableItemBackground"
     android:orientation="horizontal"
-    android:paddingTop="@dimen/primary_margin"
-    android:paddingBottom="@dimen/primary_margin"
     android:paddingLeft="@dimen/primary_margin"
-    android:paddingRight="@dimen/primary_margin">
+    android:paddingBottom="@dimen/primary_margin"
+    android:paddingRight="@dimen/primary_margin"
+    android:paddingTop="@dimen/primary_margin">
 
-    <TextView
+    <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/text_view_title"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:id="@+id/text_view_title"
-        android:textColor="@color/colorSecondaryText"
-        android:lineSpacingMultiplier="1.2"
         android:layout_marginEnd="@dimen/primary_margin"
-        android:gravity="center_vertical"
-        android:maxLines="2"
+        android:layout_weight="1"
         android:ellipsize="end"
-        android:textSize="@dimen/body_text_size" />
+        android:gravity="center_vertical"
+        android:lineSpacingMultiplier="1.2"
+        android:maxLines="2"
+        android:textColor="@color/colorSecondaryText"
+        android:textSize="@dimen/body_text_size"
+        tools:text="@string/app_name" />
 
-    <ImageView
+    <android.support.v7.widget.AppCompatImageView
+        android:id="@+id/image_view_cover"
         android:layout_width="@dimen/item_image_height"
         android:layout_height="@dimen/item_image_height"
-        android:id="@+id/image_view_cover"
+        android:layout_gravity="center_vertical"
         android:contentDescription="@string/image_view_cover_desc"
-        android:layout_gravity="center_vertical" />
+        app:srcCompat="@drawable/placeholder" />
 
 </LinearLayout>
