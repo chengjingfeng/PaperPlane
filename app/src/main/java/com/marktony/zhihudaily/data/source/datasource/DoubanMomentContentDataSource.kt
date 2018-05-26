@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.datasource
 
 import com.marktony.zhihudaily.data.DoubanMomentContent
+import com.marktony.zhihudaily.data.source.Result
 
 /**
  * Created by lizhaotailang on 2017/5/25.
@@ -26,16 +27,8 @@ import com.marktony.zhihudaily.data.DoubanMomentContent
 
 interface DoubanMomentContentDataSource {
 
-    interface LoadDoubanMomentContentCallback {
+    suspend fun getDoubanMomentContent(id: Int): Result<DoubanMomentContent>
 
-        fun onContentLoaded(content: DoubanMomentContent)
-
-        fun onDataNotAvailable()
-
-    }
-
-    fun getDoubanMomentContent(id: Int, callback: LoadDoubanMomentContentCallback)
-
-    fun saveContent(content: DoubanMomentContent)
+    suspend fun saveContent(content: DoubanMomentContent)
 
 }

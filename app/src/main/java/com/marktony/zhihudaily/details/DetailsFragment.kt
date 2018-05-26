@@ -145,50 +145,52 @@ class DetailsFragment : Fragment(), DetailsContract.View {
 
     override fun onOptionsItemSelected(item: MenuItem?): Boolean {
         val id = item?.itemId
-        if (id == android.R.id.home) {
-            activity?.onBackPressed()
-        } else if (id == R.id.action_more) {
-            activity?.let {
-                val dialog = BottomSheetDialog(it)
-                val view = it.layoutInflater.inflate(R.layout.actions_details_sheet, null)
+        when (id) {
+            android.R.id.home -> activity?.onBackPressed()
+            R.id.action_more -> {
+                activity?.let {
+                    val dialog = BottomSheetDialog(it)
+                    val view = it.layoutInflater.inflate(R.layout.actions_details_sheet, null)
 
-                val favorite = view.findViewById<AppCompatTextView>(R.id.text_view_favorite)
-                val copyLink = view.findViewById<AppCompatTextView>(R.id.text_view_copy_link)
-                val openWithBrowser = view.findViewById<AppCompatTextView>(R.id.text_view_open_with_browser)
-                val share = view.findViewById<AppCompatTextView>(R.id.text_view_share)
+                    val favorite = view.findViewById<AppCompatTextView>(R.id.text_view_favorite)
+                    val copyLink = view.findViewById<AppCompatTextView>(R.id.text_view_copy_link)
+                    val openWithBrowser = view.findViewById<AppCompatTextView>(R.id.text_view_open_with_browser)
+                    val share = view.findViewById<AppCompatTextView>(R.id.text_view_share)
 
-                favorite.setText(if (mIsFavorite) R.string.unfavorite else R.string.favorite)
+                    favorite.setText(if (mIsFavorite) R.string.unfavorite else R.string.favorite)
 
-                // add to bookmarks or delete from bookmarks
-                favorite.setOnClickListener {
-                    dialog.dismiss()
-                    mIsFavorite = !mIsFavorite
-                    mPresenter.favorite(mType, mId, mIsFavorite)
+                    // add to bookmarks or delete from bookmarks
+                    favorite.setOnClickListener {
+                        dialog.dismiss()
+                        mIsFavorite = !mIsFavorite
+                        mPresenter.favorite(mType, mId, mIsFavorite)
+                    }
+
+                    // copy the article's link to clipboard
+                    copyLink.setOnClickListener {
+                        mPresenter.getLink(mType, REQUEST_COPY_LINK, mId)
+                        dialog.dismiss()
+                    }
+
+                    // open the link in system browser
+                    openWithBrowser.setOnClickListener {
+                        mPresenter.getLink(mType, REQUEST_OPEN_WITH_BROWSER, mId)
+                        dialog.dismiss()
+                    }
+
+                    // getLink the content as text
+                    share.setOnClickListener {
+                        mPresenter.getLink(mType, REQUEST_SHARE, mId)
+                        dialog.dismiss()
+                    }
+
+                    dialog.setContentView(view)
+                    dialog.show()
                 }
-
-                // copy the article's link to clipboard
-                copyLink.setOnClickListener {
-                    mPresenter.getLink(mType, REQUEST_COPY_LINK, mId)
-                    dialog.dismiss()
-                }
-
-                // open the link in system browser
-                openWithBrowser.setOnClickListener {
-                    mPresenter.getLink(mType, REQUEST_OPEN_WITH_BROWSER, mId)
-                    dialog.dismiss()
-                }
-
-                // getLink the content as text
-                share.setOnClickListener {
-                    mPresenter.getLink(mType, REQUEST_SHARE, mId)
-                    dialog.dismiss()
-                }
-
-                dialog.setContentView(view)
-                dialog.show()
             }
         }
-        return true
+
+        return super.onOptionsItemSelected(item)
     }
 
     override fun showMessage(stringRes: Int) {

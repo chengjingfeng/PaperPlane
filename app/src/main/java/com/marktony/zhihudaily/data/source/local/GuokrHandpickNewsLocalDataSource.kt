@@ -16,11 +16,14 @@
 
 package com.marktony.zhihudaily.data.source.local
 
-import android.content.Context
-import android.os.AsyncTask
+import android.support.annotation.VisibleForTesting
 import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
+import com.marktony.zhihudaily.data.source.LocalDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickDataSource
-import com.marktony.zhihudaily.database.AppDatabase
+import com.marktony.zhihudaily.database.dao.GuokrHandpickNewsDao
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Created by lizhaotailang on 2017/5/24.
@@ -28,96 +31,59 @@ import com.marktony.zhihudaily.database.AppDatabase
  * Concrete implementation of a [GuokrHandpickNewsResult] data source as database.
  */
 
-class GuokrHandpickNewsLocalDataSource private constructor(context: Context) : GuokrHandpickDataSource {
-
-    private var mDb: AppDatabase = AppDatabase.getInstance(context)
+class GuokrHandpickNewsLocalDataSource private constructor(
+        val mAppExecutors: AppExecutors,
+        val mGuokrHandpickNewsDao: GuokrHandpickNewsDao
+) : GuokrHandpickDataSource {
 
     companion object {
 
         private var INSTANCE: GuokrHandpickNewsLocalDataSource? = null
 
-        fun getInstance(context: Context): GuokrHandpickNewsLocalDataSource {
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors, guokrHandpickNewsDao: GuokrHandpickNewsDao): GuokrHandpickNewsLocalDataSource {
             if (INSTANCE == null) {
-                INSTANCE = GuokrHandpickNewsLocalDataSource(context)
+                synchronized(GuokrHandpickNewsLocalDataSource::javaClass) {
+                    INSTANCE = GuokrHandpickNewsLocalDataSource(appExecutors, guokrHandpickNewsDao)
+                }
             }
             return INSTANCE!!
         }
+
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
     }
 
-    override fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int, callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
-
-        object : AsyncTask<Void, Void, List<GuokrHandpickNewsResult>>() {
-
-            override fun doInBackground(vararg voids: Void): List<GuokrHandpickNewsResult> {
-                return mDb.guokrHandpickNewsDao().queryAllByOffsetAndLimit(offset, limit)
-            }
-
-            override fun onPostExecute(list: List<GuokrHandpickNewsResult>?) {
-                super.onPostExecute(list)
-                if (list == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onNewsLoad(list)
-                }
-            }
-        }.execute()
+    override suspend fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int): Result<List<GuokrHandpickNewsResult>> = withContext(mAppExecutors.ioContext) {
+        val list = mGuokrHandpickNewsDao.queryAllByOffsetAndLimit(offset, limit)
+        if (list.isNotEmpty()) Result.Success(list) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun getFavorites(callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
-
-        object : AsyncTask<Void, Void, List<GuokrHandpickNewsResult>>() {
-
-            override fun doInBackground(vararg voids: Void): List<GuokrHandpickNewsResult> {
-                return mDb.guokrHandpickNewsDao().queryAllFavorites()
-            }
-
-            override fun onPostExecute(list: List<GuokrHandpickNewsResult>?) {
-                super.onPostExecute(list)
-                if (list == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onNewsLoad(list)
-                }
-            }
-        }.execute()
+    override suspend fun getFavorites(): Result<List<GuokrHandpickNewsResult>> = withContext(mAppExecutors.ioContext) {
+        val favorites = mGuokrHandpickNewsDao.queryAllFavorites()
+        if (favorites.isNotEmpty()) Result.Success(favorites) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun getItem(itemId: Int, callback: GuokrHandpickDataSource.GetNewsItemCallback) {
-        object : AsyncTask<Void, Void, GuokrHandpickNewsResult>() {
-
-            override fun doInBackground(vararg voids: Void): GuokrHandpickNewsResult {
-                return mDb.guokrHandpickNewsDao().queryItemById(itemId)
-            }
-
-            override fun onPostExecute(item: GuokrHandpickNewsResult?) {
-                super.onPostExecute(item)
-                if (item == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onItemLoaded(item)
-                }
-            }
-        }.execute()
+    override suspend fun getItem(itemId: Int): Result<GuokrHandpickNewsResult> = withContext(mAppExecutors.ioContext) {
+        val item = mGuokrHandpickNewsDao.queryItemById(itemId)
+        if (item != null) Result.Success(item) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        Thread {
-            val tmp = mDb.guokrHandpickNewsDao().queryItemById(itemId)
-            tmp.isFavorite = favorite
-            mDb.guokrHandpickNewsDao().update(tmp)
-        }.start()
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
+        withContext(mAppExecutors.ioContext) {
+            mGuokrHandpickNewsDao.queryItemById(itemId)?.let {
+                it.isFavorite = favorite
+                mGuokrHandpickNewsDao.update(it)
+            }
+        }
     }
 
-    override fun saveAll(list: List<GuokrHandpickNewsResult>) {
-        Thread {
-            mDb.beginTransaction()
-            try {
-                mDb.guokrHandpickNewsDao().insertAll(list)
-                mDb.setTransactionSuccessful()
-            } finally {
-                mDb.endTransaction()
-            }
-        }.start()
+    override suspend fun saveAll(list: List<GuokrHandpickNewsResult>) {
+        withContext(mAppExecutors.ioContext) {
+            mGuokrHandpickNewsDao.insertAll(list)
+        }
     }
 
 }

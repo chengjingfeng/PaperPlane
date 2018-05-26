@@ -16,12 +16,17 @@
 
 package com.marktony.zhihudaily.data.source.remote
 
+import android.support.annotation.VisibleForTesting
+import com.marktony.zhihudaily.BuildConfig
 import com.marktony.zhihudaily.data.DoubanMomentContent
+import com.marktony.zhihudaily.data.source.RemoteDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.DoubanMomentContentDataSource
 import com.marktony.zhihudaily.retrofit.RetrofitService
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -31,45 +36,69 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Implementation of the [DoubanMomentContent] data source that accesses network.
  */
 
-class DoubanMomentContentRemoteDataSource private constructor() : DoubanMomentContentDataSource {
+class DoubanMomentContentRemoteDataSource private constructor(private val mAppExecutors: AppExecutors) : DoubanMomentContentDataSource {
+
+    private val mDoubanMomentService: RetrofitService.DoubanMomentService by lazy {
+        val httpClientBuilder = OkHttpClient.Builder()
+
+        if (BuildConfig.DEBUG) {
+            httpClientBuilder.addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+        }
+
+        httpClientBuilder.retryOnConnectionFailure(true)
+
+        val retrofit = Retrofit.Builder()
+                .baseUrl(RetrofitService.DOUBAN_MOMENT_BASE)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(httpClientBuilder.build())
+                .build()
+
+        retrofit.create(RetrofitService.DoubanMomentService::class.java)
+    }
 
     companion object {
 
         private var INSTANCE: DoubanMomentContentRemoteDataSource? = null
 
-        val instance: DoubanMomentContentRemoteDataSource
-            get() {
-                if (INSTANCE == null) {
-                    INSTANCE = DoubanMomentContentRemoteDataSource()
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors): DoubanMomentContentRemoteDataSource {
+            if (INSTANCE == null) {
+                synchronized(DoubanMomentContentRemoteDataSource::javaClass) {
+                    INSTANCE = DoubanMomentContentRemoteDataSource(appExecutors)
                 }
-                return INSTANCE!!
             }
-    }
+            return INSTANCE!!
+        }
 
-    override fun getDoubanMomentContent(id: Int, callback: DoubanMomentContentDataSource.LoadDoubanMomentContentCallback) {
-
-        val retrofit = Retrofit.Builder()
-                .baseUrl(RetrofitService.DOUBAN_MOMENT_BASE)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-        val service = retrofit.create(RetrofitService.DoubanMomentService::class.java)
-
-        service.getDoubanContent(id).enqueue(object : Callback<DoubanMomentContent> {
-            override fun onResponse(call: Call<DoubanMomentContent>, response: Response<DoubanMomentContent>) {
-                callback.onContentLoaded(response.body()!!)
-            }
-
-            override fun onFailure(call: Call<DoubanMomentContent>, t: Throwable) {
-                callback.onDataNotAvailable()
-            }
-        })
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
 
     }
 
-    override fun saveContent(content: DoubanMomentContent) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
+    override suspend fun getDoubanMomentContent(id: Int): Result<DoubanMomentContent> = withContext(mAppExecutors.ioContext) {
+        try {
+            val response = mDoubanMomentService.getDoubanContent(id).execute()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    Result.Success(it)
+                } ?: run {
+                    Result.Error(RemoteDataNotFoundException())
+                }
+            } else {
+                Result.Error(RemoteDataNotFoundException())
+            }
+        } catch (e: Exception) {
+            Result.Error(RemoteDataNotFoundException())
+        }
+    }
+
+    override suspend fun saveContent(content: DoubanMomentContent) {
+        // Not required because the [com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository] handles the logic of refreshing the
+        // news from all the available data sources.
     }
 
 }

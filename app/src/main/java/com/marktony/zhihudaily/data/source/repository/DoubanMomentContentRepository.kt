@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.DoubanMomentContent
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.DoubanMomentContentDataSource
 
 /**
@@ -54,42 +55,28 @@ class DoubanMomentContentRepository private constructor(
         }
     }
 
-    override fun getDoubanMomentContent(id: Int, callback: DoubanMomentContentDataSource.LoadDoubanMomentContentCallback) {
-        mContent?.let {
-            callback.onContentLoaded(it)
-            return
+    override suspend fun getDoubanMomentContent(id: Int): Result<DoubanMomentContent> {
+        if (mContent != null && mContent?.id == id) {
+            return Result.Success(mContent!!)
         }
 
-        // Get data from net first.
-        mRemoteDataSource.getDoubanMomentContent(id, object : DoubanMomentContentDataSource.LoadDoubanMomentContentCallback {
-            override fun onContentLoaded(content: DoubanMomentContent) {
-                if (mContent == null) {
-                    mContent = content
-                    saveContent(content)
+        val remoteResult = mRemoteDataSource.getDoubanMomentContent(id)
+        return if (remoteResult is Result.Success) {
+            mContent = remoteResult.data
+            saveContent(remoteResult.data)
+
+            remoteResult
+        } else {
+            mLocalDataSource.getDoubanMomentContent(id).also {
+                if (it is Result.Success) {
+                    mContent = it.data
                 }
-                callback.onContentLoaded(content)
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getDoubanMomentContent(id, object : DoubanMomentContentDataSource.LoadDoubanMomentContentCallback {
-                    override fun onContentLoaded(content: DoubanMomentContent) {
-                        if (mContent == null) {
-                            mContent = content
-                        }
-                        callback.onContentLoaded(content)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun saveContent(content: DoubanMomentContent) {
+    override suspend fun saveContent(content: DoubanMomentContent) {
         mLocalDataSource.saveContent(content)
-        mRemoteDataSource.saveContent(content)
     }
 
 }

@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package com.marktony.zhihudaily.data.source.datasource
+package com.marktony.zhihudaily.util
 
-import com.marktony.zhihudaily.data.ZhihuDailyContent
-import com.marktony.zhihudaily.data.source.Result
+import kotlinx.coroutines.experimental.DefaultDispatcher
+import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.newFixedThreadPoolContext
+import kotlin.coroutines.experimental.CoroutineContext
 
-/**
- * Created by lizhaotailang on 2017/5/25.
- *
- * Main entry point for accessing the [ZhihuDailyContent] data.
- */
+const val THREAD_COUNT = 3
 
-interface ZhihuDailyContentDataSource {
-
-    suspend fun getZhihuDailyContent(id: Int): Result<ZhihuDailyContent>
-
-    suspend fun saveContent(content: ZhihuDailyContent)
-
-}
+open class AppExecutors constructor(
+        val ioContext: CoroutineContext = DefaultDispatcher,
+        val networkContext: CoroutineContext = newFixedThreadPoolContext(THREAD_COUNT, "networkIO"),
+        val uiContext: CoroutineContext = UI)

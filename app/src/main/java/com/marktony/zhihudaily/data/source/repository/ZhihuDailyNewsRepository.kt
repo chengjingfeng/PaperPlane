@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyNewsDataSource
 import java.util.*
 
@@ -25,14 +26,12 @@ import java.util.*
  *
  * Concrete implementation to load [ZhihuDailyNewsQuestion]s from the data sources into a cache.
  *
- *
  * Use the remote data source firstly, which is obtained from the server.
  * If the remote data was not available, then use the local data source,
  * which was from the locally persisted in database.
  */
 
-class ZhihuDailyNewsRepository// Prevent direct instantiation.
-private constructor(
+class ZhihuDailyNewsRepository private constructor(
         private val mRemoteDataSource: ZhihuDailyNewsDataSource,
         private val mLocalDataSource: ZhihuDailyNewsDataSource
 ) : ZhihuDailyNewsDataSource {
@@ -56,84 +55,43 @@ private constructor(
         }
     }
 
-    override fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-
+    override suspend fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<ZhihuDailyNewsQuestion>> {
         if (!forceUpdate) {
-            callback.onNewsLoaded(ArrayList(mCachedItems.values))
-            return
+            return Result.Success(mCachedItems.values.toList())
         }
 
-        // Get data by accessing network first.
-        mRemoteDataSource.getZhihuDailyNews(false, clearCache, date, object : ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback {
-            override fun onNewsLoaded(list: List<ZhihuDailyNewsQuestion>) {
-                refreshCache(clearCache, list)
-                callback.onNewsLoaded(ArrayList(mCachedItems.values))
-                // Save these item to database.
-                saveAll(list)
+        val result = mRemoteDataSource.getZhihuDailyNews(false, clearCache, date)
+        return if (result is Result.Success) {
+            refreshCache(clearCache, result.data)
+            saveAll(result.data)
+
+            result
+        } else {
+            mLocalDataSource.getZhihuDailyNews(false, false, date).also {
+                if (it is Result.Success) {
+                    refreshCache(clearCache, it.data)
+                }
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getZhihuDailyNews(false, false, date, object : ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback {
-                    override fun onNewsLoaded(list: List<ZhihuDailyNewsQuestion>) {
-                        refreshCache(clearCache, list)
-                        callback.onNewsLoaded(ArrayList(mCachedItems.values))
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
-
+        }
     }
 
-    override fun getFavorites(callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-        mLocalDataSource.getFavorites(object : ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback {
-            override fun onNewsLoaded(list: List<ZhihuDailyNewsQuestion>) {
-                callback.onNewsLoaded(list)
-            }
+    override suspend fun getFavorites(): Result<List<ZhihuDailyNewsQuestion>> = mLocalDataSource.getFavorites()
 
-            override fun onDataNotAvailable() {
-                callback.onDataNotAvailable()
-            }
-        })
-    }
-
-    override fun getItem(itemId: Int, callback: ZhihuDailyNewsDataSource.GetNewsItemCallback) {
+    override suspend fun getItem(itemId: Int): Result<ZhihuDailyNewsQuestion> {
         val cachedItem = getItemWithId(itemId)
 
         if (cachedItem != null) {
-            callback.onItemLoaded(cachedItem)
-            return
+            return Result.Success(cachedItem)
         }
 
-        mLocalDataSource.getItem(itemId, object : ZhihuDailyNewsDataSource.GetNewsItemCallback {
-            override fun onItemLoaded(item: ZhihuDailyNewsQuestion) {
-                if (false) {
-                    mCachedItems = LinkedHashMap()
-                }
-                mCachedItems[item.id] = item
-                callback.onItemLoaded(item)
+        return mLocalDataSource.getItem(itemId).also {
+            if (it is Result.Success) {
+                mCachedItems[it.data.id] = it.data
             }
-
-            override fun onDataNotAvailable() {
-                mRemoteDataSource.getItem(itemId, object : ZhihuDailyNewsDataSource.GetNewsItemCallback {
-                    override fun onItemLoaded(item: ZhihuDailyNewsQuestion) {
-                        mCachedItems[item.id] = item
-                        callback.onItemLoaded(item)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        mRemoteDataSource.favoriteItem(itemId, favorite)
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
         mLocalDataSource.favoriteItem(itemId, favorite)
 
         val cachedItem = getItemWithId(itemId)
@@ -142,12 +100,10 @@ private constructor(
         }
     }
 
-    override fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
+    override suspend fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
         mLocalDataSource.saveAll(list)
-        mRemoteDataSource.saveAll(list)
 
         for (item in list) {
-            // Note:  Setting of timestamp was done in the {@link ZhihuDailyNewsRemoteDataSource} class.
             mCachedItems[item.id] = item
         }
     }

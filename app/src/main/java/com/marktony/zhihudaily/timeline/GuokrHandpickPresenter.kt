@@ -16,9 +16,11 @@
 
 package com.marktony.zhihudaily.timeline
 
-import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
-import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickDataSource
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository
+import com.marktony.zhihudaily.util.launchSilent
+import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Created by lizhaotailang on 2017/5/24.
@@ -29,7 +31,8 @@ import com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepositor
 
 class GuokrHandpickPresenter(
         private val mView: GuokrHandpickContract.View,
-        private val mRepository: GuokrHandpickNewsRepository
+        private val mRepository: GuokrHandpickNewsRepository,
+        private val uiContext: CoroutineContext = UI
 ) : GuokrHandpickContract.Presenter {
 
     init {
@@ -40,22 +43,14 @@ class GuokrHandpickPresenter(
 
     }
 
-    override fun load(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int) {
-
-        mRepository.getGuokrHandpickNews(forceUpdate, clearCache, offset, limit, object : GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback {
-            override fun onNewsLoad(list: List<GuokrHandpickNewsResult>) {
-                if (mView.isActive) {
-                    mView.showResult(list.toMutableList())
-                    mView.setLoadingIndicator(false)
-                }
+    override fun load(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int) = launchSilent(uiContext) {
+        val result = mRepository.getGuokrHandpickNews(forceUpdate, clearCache, offset, limit)
+        if (mView.isActive) {
+            if (result is Result.Success) {
+                mView.showResult(result.data.toMutableList())
             }
-
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.setLoadingIndicator(false)
-                }
-            }
-        })
+            mView.setLoadingIndicator(false)
+        }
     }
 
 }

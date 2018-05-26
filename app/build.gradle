@@ -29,7 +29,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -45,6 +45,12 @@ android {
 
 androidExtensions {
     experimental = true
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
 }
 
 dependencies {
@@ -76,6 +82,14 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${versions.coroutines}"
 
     testImplementation "junit:junit:${versions.junit}"
-    androidTestImplementation "com.android.support.test:runner:${versions.test_runner}"
-    androidTestImplementation "com.android.support.test.espresso:espresso-core:${versions.espresso_core}"
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+
+    androidTestImplementation "com.android.support.test:runner:${versions.support_test}"
+    androidTestImplementation "com.android.support.test:rules:${versions.support_test}"
+    androidTestImplementation "com.android.support.test.espresso:espresso-core:${versions.espresso}"
+    androidTestImplementation "com.android.support.test.espresso:espresso-contrib:${versions.espresso}"
+    androidTestImplementation "com.android.support.test.espresso:espresso-intents:${versions.espresso}"
+    androidTestImplementation "org.mockito:mockito-android:${versions.mockito}"
+
 }

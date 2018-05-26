@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.GuokrHandpickContentResult
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickContentDataSource
 
 /**
@@ -53,41 +54,28 @@ class GuokrHandpickContentRepository private constructor(
         }
     }
 
-    override fun getGuokrHandpickContent(id: Int, callback: GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback) {
-        mContent?.let {
-            callback.onContentLoaded(it)
-            return
+    override suspend fun getGuokrHandpickContent(id: Int): Result<GuokrHandpickContentResult> {
+        if (mContent != null && mContent?.id == id) {
+            return Result.Success(mContent!!)
         }
 
-        mRemoteDataSource.getGuokrHandpickContent(id, object : GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback {
-            override fun onContentLoaded(content: GuokrHandpickContentResult) {
-                if (mContent == null) {
-                    mContent = content
-                    saveContent(content)
+        val remoteResult = mRemoteDataSource.getGuokrHandpickContent(id)
+        return if (remoteResult is Result.Success) {
+            mContent = remoteResult.data
+            saveContent(remoteResult.data)
+
+            remoteResult
+        } else {
+            mLocalDataSource.getGuokrHandpickContent(id).also {
+                if (it is Result.Success) {
+                    mContent = it.data
                 }
-                callback.onContentLoaded(content)
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getGuokrHandpickContent(id, object : GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback {
-                    override fun onContentLoaded(content: GuokrHandpickContentResult) {
-                        if (mContent == null) {
-                            mContent = content
-                        }
-                        callback.onContentLoaded(content)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun saveContent(content: GuokrHandpickContentResult) {
+    override suspend fun saveContent(content: GuokrHandpickContentResult) {
         mLocalDataSource.saveContent(content)
-        mRemoteDataSource.saveContent(content)
     }
 
 }

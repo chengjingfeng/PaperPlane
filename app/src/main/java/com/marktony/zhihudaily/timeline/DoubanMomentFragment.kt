@@ -170,7 +170,7 @@ class DoubanMomentFragment : Fragment(), DoubanMomentContract.View {
     }
 
     fun showDatePickerDialog() {
-        val dialog = DatePickerDialog.newInstance({ datePickerDialog, year, monthOfYear, dayOfMonth ->
+        val dialog = DatePickerDialog.newInstance({ _, year, monthOfYear, dayOfMonth ->
             mYear = year
             mMonth = monthOfYear
             mDay = dayOfMonth

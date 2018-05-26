@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.datasource
 
 import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
+import com.marktony.zhihudaily.data.source.Result
 
 /**
  * Created by lizhaotailang on 2017/5/21.
@@ -26,30 +27,14 @@ import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
 
 interface ZhihuDailyNewsDataSource {
 
-    interface LoadZhihuDailyNewsCallback {
+    suspend fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<ZhihuDailyNewsQuestion>>
 
-        fun onNewsLoaded(list: List<ZhihuDailyNewsQuestion>)
+    suspend fun getFavorites(): Result<List<ZhihuDailyNewsQuestion>>
 
-        fun onDataNotAvailable()
+    suspend fun getItem(itemId: Int): Result<ZhihuDailyNewsQuestion>
 
-    }
+    suspend fun favoriteItem(itemId: Int, favorite: Boolean)
 
-    interface GetNewsItemCallback {
-
-        fun onItemLoaded(item: ZhihuDailyNewsQuestion)
-
-        fun onDataNotAvailable()
-
-    }
-
-    fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: LoadZhihuDailyNewsCallback)
-
-    fun getFavorites(callback: LoadZhihuDailyNewsCallback)
-
-    fun getItem(itemId: Int, callback: GetNewsItemCallback)
-
-    fun favoriteItem(itemId: Int, favorite: Boolean)
-
-    fun saveAll(list: List<ZhihuDailyNewsQuestion>)
+    suspend fun saveAll(list: List<ZhihuDailyNewsQuestion>)
 
 }

@@ -20,9 +20,10 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import com.marktony.zhihudaily.R
 import com.marktony.zhihudaily.data.ContentType
-import com.marktony.zhihudaily.data.source.local.*
-import com.marktony.zhihudaily.data.source.remote.*
-import com.marktony.zhihudaily.data.source.repository.*
+import com.marktony.zhihudaily.data.source.repository.DoubanMomentContentRepository
+import com.marktony.zhihudaily.data.source.repository.GuokrHandpickContentRepository
+import com.marktony.zhihudaily.data.source.repository.ZhihuDailyContentRepository
+import com.marktony.zhihudaily.injection.Injection
 
 /**
  * Created by lizhaotailang on 2017/5/24.
@@ -58,20 +59,18 @@ class DetailsActivity : AppCompatActivity() {
 
         mType = intent.getSerializableExtra(KEY_ARTICLE_TYPE) as ContentType
         when {
-            mType === ContentType.TYPE_ZHIHU_DAILY -> DetailsPresenter(mDetailsFragment,
-                    ZhihuDailyNewsRepository.getInstance(ZhihuDailyNewsRemoteDataSource.instance,
-                            ZhihuDailyNewsLocalDataSource.getInstance(this@DetailsActivity)),
-                    ZhihuDailyContentRepository.getInstance(ZhihuDailyContentRemoteDataSource.instance,
-                            ZhihuDailyContentLocalDataSource.getInstance(this@DetailsActivity)))
-            mType === ContentType.TYPE_DOUBAN_MOMENT -> DetailsPresenter(mDetailsFragment,
-                    DoubanMomentNewsRepository.getInstance(DoubanMomentNewsRemoteDataSource.instance,
-                            DoubanMomentNewsLocalDataSource.getInstance(this@DetailsActivity)),
-                    DoubanMomentContentRepository.getInstance(DoubanMomentContentRemoteDataSource.instance,
-                            DoubanMomentContentLocalDataSource.getInstance(this@DetailsActivity)))
-            mType === ContentType.TYPE_GUOKR_HANDPICK -> DetailsPresenter(mDetailsFragment,
-                    GuokrHandpickNewsRepository.getInstance(GuokrHandpickNewsRemoteDataSource.instance,
-                            GuokrHandpickNewsLocalDataSource.getInstance(this@DetailsActivity)),
-                    GuokrHandpickContentRepository.getInstance(GuokrHandpickContentRemoteDataSource.instance, GuokrHandpickContentLocalDataSource.getInstance(this@DetailsActivity)))
+            mType === ContentType.TYPE_ZHIHU_DAILY -> DetailsPresenter(
+                    mDetailsFragment,
+                    Injection.provideZhihuDailyNewsRepository(this@DetailsActivity),
+                    Injection.provideZhihuDailyContentRepository(this@DetailsActivity))
+            mType === ContentType.TYPE_DOUBAN_MOMENT -> DetailsPresenter(
+                    mDetailsFragment,
+                    Injection.provideDoubanMomentNewsRepository(this@DetailsActivity),
+                    Injection.provideDoubanMomentContentRepository(this@DetailsActivity))
+            mType === ContentType.TYPE_GUOKR_HANDPICK -> DetailsPresenter(
+                    mDetailsFragment,
+                    Injection.provideGuokrHandpickNewsRepository(this@DetailsActivity),
+                    Injection.provideGuokrHandpickContentRepository(this@DetailsActivity))
         }
 
     }

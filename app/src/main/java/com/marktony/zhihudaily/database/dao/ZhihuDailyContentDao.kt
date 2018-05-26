@@ -30,7 +30,7 @@ import com.marktony.zhihudaily.data.ZhihuDailyContent
 interface ZhihuDailyContentDao {
 
     @Query("SELECT * FROM zhihu_daily_content WHERE id = :id")
-    fun queryContentById(id: Int): ZhihuDailyContent
+    fun queryContentById(id: Int): ZhihuDailyContent?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(content: ZhihuDailyContent)

@@ -40,14 +40,14 @@ class InfoFragment : Fragment() {
 
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_info, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? = inflater.inflate(R.layout.fragment_info, container, false)
 
-//        childFragmentManager.beginTransaction()
-//                .replace(R.id.info_container, InfoPreferenceFragment())
-//                .commit()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
-        return view
+        childFragmentManager.beginTransaction()
+                .replace(R.id.info_container, InfoPreferenceFragment.newInstance(), InfoPreferenceFragment::class.java.simpleName)
+                .commit()
     }
 
 }

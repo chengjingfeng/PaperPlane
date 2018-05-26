@@ -16,9 +16,11 @@
 
 package com.marktony.zhihudaily.timeline
 
-import com.marktony.zhihudaily.data.DoubanMomentNewsPosts
-import com.marktony.zhihudaily.data.source.datasource.DoubanMomentNewsDataSource
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository
+import com.marktony.zhihudaily.util.launchSilent
+import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Created by lizhaotailang on 2017/5/21.
@@ -29,7 +31,8 @@ import com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository
 
 class DoubanMomentPresenter(
         private val mView: DoubanMomentContract.View,
-        private val mRepository: DoubanMomentNewsRepository
+        private val mRepository: DoubanMomentNewsRepository,
+        private val uiContext: CoroutineContext = UI
 ) : DoubanMomentContract.Presenter {
 
     init {
@@ -40,22 +43,14 @@ class DoubanMomentPresenter(
 
     }
 
-    override fun load(forceUpdate: Boolean, clearCache: Boolean, date: Long) {
-
-        mRepository.getDoubanMomentNews(forceUpdate, clearCache, date, object : DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback {
-            override fun onNewsLoaded(list: List<DoubanMomentNewsPosts>) {
-                if (mView.isActive) {
-                    mView.showResult(list.toMutableList())
-                    mView.setLoadingIndicator(false)
-                }
+    override fun load(forceUpdate: Boolean, clearCache: Boolean, date: Long) = launchSilent(uiContext) {
+        val result = mRepository.getDoubanMomentNews(forceUpdate, clearCache, date)
+        if (mView.isActive) {
+            if (result is Result.Success) {
+                mView.showResult(result.data.toMutableList())
             }
-
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.setLoadingIndicator(false)
-                }
-            }
-        })
+            mView.setLoadingIndicator(false)
+        }
     }
 
 }

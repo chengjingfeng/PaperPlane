@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.ZhihuDailyContent
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyContentDataSource
 
 /**
@@ -53,42 +54,28 @@ class ZhihuDailyContentRepository private constructor(
         }
     }
 
-    override fun getZhihuDailyContent(id: Int, callback: ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback) {
-        mContent?.let {
-            callback.onContentLoaded(it)
-            return
+    override suspend fun getZhihuDailyContent(id: Int): Result<ZhihuDailyContent> {
+        if (mContent != null && mContent?.id == id) {
+            return Result.Success(mContent!!)
         }
 
-        mRemoteDataSource.getZhihuDailyContent(id, object : ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback {
-            override fun onContentLoaded(content: ZhihuDailyContent) {
-                if (mContent == null) {
-                    mContent = content
-                    saveContent(content)
+        val remoteResult = mRemoteDataSource.getZhihuDailyContent(id)
+        return if (remoteResult is Result.Success) {
+            mContent = remoteResult.data
+            saveContent(remoteResult.data)
+
+            remoteResult
+        } else {
+            mLocalDataSource.getZhihuDailyContent(id).also {
+                if (it is Result.Success) {
+                    mContent = it.data
                 }
-                callback.onContentLoaded(content)
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getZhihuDailyContent(id, object : ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback {
-                    override fun onContentLoaded(content: ZhihuDailyContent) {
-                        if (mContent == null) {
-                            mContent = content
-                        }
-                        callback.onContentLoaded(content)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun saveContent(content: ZhihuDailyContent) {
-        // Note: Setting of timestamp was done in the {@link ZhihuDailyContentLocalDataSource} class.
+    override suspend fun saveContent(content: ZhihuDailyContent) {
         mLocalDataSource.saveContent(content)
-        mRemoteDataSource.saveContent(content)
     }
 
 }

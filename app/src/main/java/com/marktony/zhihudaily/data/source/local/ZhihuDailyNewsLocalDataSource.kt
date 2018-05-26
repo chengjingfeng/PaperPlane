@@ -16,11 +16,14 @@
 
 package com.marktony.zhihudaily.data.source.local
 
-import android.content.Context
-import android.os.AsyncTask
+import android.support.annotation.VisibleForTesting
 import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
+import com.marktony.zhihudaily.data.source.LocalDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyNewsDataSource
-import com.marktony.zhihudaily.database.AppDatabase
+import com.marktony.zhihudaily.database.dao.ZhihuDailyNewsDao
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Created by lizhaotailang on 2017/5/21.
@@ -28,101 +31,58 @@ import com.marktony.zhihudaily.database.AppDatabase
  * Concrete implementation of a [ZhihuDailyNewsQuestion] data source as database.
  */
 
-class ZhihuDailyNewsLocalDataSource private constructor(context: Context) : ZhihuDailyNewsDataSource {
-
-    private var mDb: AppDatabase = AppDatabase.getInstance(context)
+class ZhihuDailyNewsLocalDataSource private constructor(
+        val mAppExecutors: AppExecutors,
+        val mZhihuDailyNewsDao: ZhihuDailyNewsDao
+) : ZhihuDailyNewsDataSource {
 
     companion object {
-
         private var INSTANCE: ZhihuDailyNewsLocalDataSource? = null
 
-        fun getInstance(context: Context): ZhihuDailyNewsLocalDataSource {
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors, zhihuDailyNewsDao: ZhihuDailyNewsDao): ZhihuDailyNewsLocalDataSource {
             if (INSTANCE == null) {
-                INSTANCE = ZhihuDailyNewsLocalDataSource(context)
+                synchronized(ZhihuDailyNewsLocalDataSource::javaClass) {
+                    INSTANCE = ZhihuDailyNewsLocalDataSource(appExecutors, zhihuDailyNewsDao)
+                }
             }
             return INSTANCE!!
         }
 
-        fun destroyInstance() {
+        @VisibleForTesting
+        fun clearInstance() {
             INSTANCE = null
         }
     }
 
-    override fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-
-        object : AsyncTask<Void, Void, List<ZhihuDailyNewsQuestion>>() {
-
-            override fun doInBackground(vararg voids: Void): List<ZhihuDailyNewsQuestion> {
-                return mDb.zhihuDailyNewsDao().queryAllByDate(date)
-            }
-
-            override fun onPostExecute(list: List<ZhihuDailyNewsQuestion>?) {
-                super.onPostExecute(list)
-                if (list == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onNewsLoaded(list)
-                }
-            }
-
-        }.execute()
+    override suspend fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<ZhihuDailyNewsQuestion>> = withContext(mAppExecutors.ioContext) {
+        val news = mZhihuDailyNewsDao.queryAllByDate(date)
+        if (news.isNotEmpty()) Result.Success(news) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun getFavorites(callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-
-        object : AsyncTask<Void, Void, List<ZhihuDailyNewsQuestion>>() {
-
-            override fun doInBackground(vararg voids: Void): List<ZhihuDailyNewsQuestion> {
-                return mDb.zhihuDailyNewsDao().queryAllFavorites()
-            }
-
-            override fun onPostExecute(list: List<ZhihuDailyNewsQuestion>?) {
-                super.onPostExecute(list)
-                if (list == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onNewsLoaded(list)
-                }
-            }
-        }.execute()
+    override suspend fun getFavorites(): Result<List<ZhihuDailyNewsQuestion>> = withContext(mAppExecutors.ioContext) {
+        val favorites = mZhihuDailyNewsDao.queryAllFavorites()
+        if (favorites.isNotEmpty()) Result.Success(favorites) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun getItem(itemId: Int, callback: ZhihuDailyNewsDataSource.GetNewsItemCallback) {
-
-        object : AsyncTask<Void, Void, ZhihuDailyNewsQuestion>() {
-            override fun doInBackground(vararg voids: Void): ZhihuDailyNewsQuestion {
-                return mDb.zhihuDailyNewsDao().queryItemById(itemId)
-            }
-
-            override fun onPostExecute(item: ZhihuDailyNewsQuestion?) {
-                super.onPostExecute(item)
-                if (item == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onItemLoaded(item)
-                }
-            }
-        }.execute()
+    override suspend fun getItem(itemId: Int): Result<ZhihuDailyNewsQuestion> = withContext(mAppExecutors.ioContext) {
+        val item = mZhihuDailyNewsDao.queryItemById(itemId)
+        if (item != null) Result.Success(item) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        Thread {
-            val tmp = mDb.zhihuDailyNewsDao().queryItemById(itemId)
-            tmp.isFavorite = favorite
-            mDb.zhihuDailyNewsDao().update(tmp)
-        }.start()
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
+        withContext(mAppExecutors.ioContext) {
+            mZhihuDailyNewsDao.queryItemById(itemId)?.let {
+                it.isFavorite = favorite
+                mZhihuDailyNewsDao.update(it)
+            }
+        }
     }
 
-    override fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
-        Thread {
-            mDb.beginTransaction()
-            try {
-                mDb.zhihuDailyNewsDao().insertAll(list)
-                mDb.setTransactionSuccessful()
-            } finally {
-                mDb.endTransaction()
-            }
-        }.start()
+    override suspend fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
+        withContext(mAppExecutors.ioContext) {
+            mZhihuDailyNewsDao.insertAll(list)
+        }
     }
 
 }

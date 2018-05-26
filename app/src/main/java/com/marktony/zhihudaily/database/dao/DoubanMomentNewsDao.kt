@@ -32,7 +32,7 @@ interface DoubanMomentNewsDao {
     fun queryAllByDate(timestamp: Long): List<DoubanMomentNewsPosts>
 
     @Query("SELECT * FROM douban_moment_news WHERE id = :id")
-    fun queryItemById(id: Int): DoubanMomentNewsPosts
+    fun queryItemById(id: Int): DoubanMomentNewsPosts?
 
     @Query("SELECT * FROM douban_moment_news WHERE favorite = 1")
     fun queryAllFavorites(): List<DoubanMomentNewsPosts>

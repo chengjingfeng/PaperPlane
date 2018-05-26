@@ -28,11 +28,11 @@ import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
 @Dao
 interface ZhihuDailyNewsDao {
 
-    @Query("SELECT * FROM zhihu_daily_news WHERE timestamp BETWEEN (:timestamp - 24*60*60*1000 + 1) AND :timestamp ORDER BY timestamp ASC")
+    @Query("SELECT * FROM zhihu_daily_news WHERE timestamp < :timestamp ORDER BY timestamp ASC")
     fun queryAllByDate(timestamp: Long): List<ZhihuDailyNewsQuestion>
 
     @Query("SELECT * FROM zhihu_daily_news WHERE id = :id")
-    fun queryItemById(id: Int): ZhihuDailyNewsQuestion
+    fun queryItemById(id: Int): ZhihuDailyNewsQuestion?
 
     @Query("SELECT * FROM zhihu_daily_news WHERE favorite = 1")
     fun queryAllFavorites(): List<ZhihuDailyNewsQuestion>

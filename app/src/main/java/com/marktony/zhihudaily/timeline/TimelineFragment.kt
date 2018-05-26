@@ -24,15 +24,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.marktony.zhihudaily.R
-import com.marktony.zhihudaily.data.source.local.DoubanMomentNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.local.GuokrHandpickNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.local.ZhihuDailyNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.remote.DoubanMomentNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.remote.GuokrHandpickNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.remote.ZhihuDailyNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository
-import com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository
-import com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository
+import com.marktony.zhihudaily.injection.Injection
 import kotlinx.android.synthetic.main.fragment_timeline.*
 
 /**
@@ -64,17 +56,11 @@ class TimelineFragment : Fragment() {
         mGuokrFragment = GuokrHandpickFragment.newInstance()
 
         context?.let {
-            ZhihuDailyPresenter(mZhihuFragment, ZhihuDailyNewsRepository.getInstance(
-                    ZhihuDailyNewsRemoteDataSource.instance,
-                    ZhihuDailyNewsLocalDataSource.getInstance(it)))
+            ZhihuDailyPresenter(mZhihuFragment, Injection.provideZhihuDailyNewsRepository(it))
 
-            DoubanMomentPresenter(mDoubanFragment, DoubanMomentNewsRepository.getInstance(
-                    DoubanMomentNewsRemoteDataSource.instance,
-                    DoubanMomentNewsLocalDataSource.getInstance(it)))
+            DoubanMomentPresenter(mDoubanFragment, Injection.provideDoubanMomentNewsRepository(it))
 
-            GuokrHandpickPresenter(mGuokrFragment, GuokrHandpickNewsRepository.getInstance(
-                    GuokrHandpickNewsRemoteDataSource.instance,
-                    GuokrHandpickNewsLocalDataSource.getInstance(it)))
+            GuokrHandpickPresenter(mGuokrFragment, Injection.provideGuokrHandpickNewsRepository(it))
 
             view_pager.adapter = TimelineFragmentPagerAdapter(
                     childFragmentManager,

@@ -16,13 +16,18 @@
 
 package com.marktony.zhihudaily.data.source.remote
 
+import android.support.annotation.VisibleForTesting
+import com.marktony.zhihudaily.BuildConfig
 import com.marktony.zhihudaily.data.GuokrHandpickNews
 import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
+import com.marktony.zhihudaily.data.source.RemoteDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickDataSource
 import com.marktony.zhihudaily.retrofit.RetrofitService
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -33,59 +38,87 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Implementation of the [GuokrHandpickNews] data source that accesses network.
  */
 
-class GuokrHandpickNewsRemoteDataSource private constructor() : GuokrHandpickDataSource {
+class GuokrHandpickNewsRemoteDataSource private constructor(private val mAppExecutors: AppExecutors) : GuokrHandpickDataSource {
+
+    private val mGuokrHandpickService: RetrofitService.GuokrHandpickService by lazy {
+        val httpClientBuilder = OkHttpClient.Builder()
+
+        if (BuildConfig.DEBUG) {
+            httpClientBuilder.addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+        }
+
+        httpClientBuilder.retryOnConnectionFailure(true)
+
+        val retrofit = Retrofit.Builder()
+                .baseUrl(RetrofitService.GUOKR_HANDPICK_BASE)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(httpClientBuilder.build())
+                .build()
+
+        retrofit.create(RetrofitService.GuokrHandpickService::class.java)
+    }
 
     companion object {
 
         private var INSTANCE: GuokrHandpickNewsRemoteDataSource? = null
 
-        val instance: GuokrHandpickNewsRemoteDataSource
-            get() {
-                if (INSTANCE == null) {
-                    INSTANCE = GuokrHandpickNewsRemoteDataSource()
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors): GuokrHandpickNewsRemoteDataSource {
+            if (INSTANCE == null) {
+                synchronized(GuokrHandpickNewsRemoteDataSource::javaClass) {
+                    INSTANCE = GuokrHandpickNewsRemoteDataSource(appExecutors)
                 }
-                return INSTANCE!!
             }
+            return INSTANCE!!
+        }
+
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
+
     }
 
-    override fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int, callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
-        val retrofit = Retrofit.Builder()
-                .baseUrl(RetrofitService.GUOKR_HANDPICK_BASE)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-        val service = retrofit.create(RetrofitService.GuokrHandpickService::class.java)
-
-        service.getGuokrHandpick(offset, limit)
-                .enqueue(object : Callback<GuokrHandpickNews> {
-                    override fun onResponse(call: Call<GuokrHandpickNews>, response: Response<GuokrHandpickNews>) {
-                        callback.onNewsLoad(response.body()!!.result)
+    override suspend fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int): Result<List<GuokrHandpickNewsResult>> = withContext(mAppExecutors.ioContext) {
+        try {
+            val response = mGuokrHandpickService.getGuokrHandpick(offset, limit).execute()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    if (it.result.isNotEmpty()) {
+                        Result.Success(it.result)
+                    } else {
+                        Result.Error(RemoteDataNotFoundException())
                     }
+                } ?: run {
+                    Result.Error(RemoteDataNotFoundException())
+                }
+            } else {
+                Result.Error(RemoteDataNotFoundException())
+            }
+        } catch (e: Exception) {
+            Result.Error(RemoteDataNotFoundException())
+        }
 
-                    override fun onFailure(call: Call<GuokrHandpickNews>, t: Throwable) {
-                        callback.onDataNotAvailable()
-                    }
-                })
     }
 
-    override fun getFavorites(callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
+    // Not required because the [com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository] handles the logic of refreshing the
+    // news from all the available data sources.
+    override suspend fun getFavorites(): Result<List<GuokrHandpickNewsResult>> = Result.Error(RemoteDataNotFoundException())
+
+    // Not required because the [com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository] handles the logic of refreshing the
+    // news from all the available data sources.
+    override suspend fun getItem(itemId: Int): Result<GuokrHandpickNewsResult> = Result.Error(RemoteDataNotFoundException())
+
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
+        // Not required because the [com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository] handles the logic of refreshing the
+        // news from all the available data sources.
     }
 
-    override fun getItem(itemId: Int, callback: GuokrHandpickDataSource.GetNewsItemCallback) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
-    }
-
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
-    }
-
-    override fun saveAll(list: List<GuokrHandpickNewsResult>) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
+    override suspend fun saveAll(list: List<GuokrHandpickNewsResult>) {
+        // Not required because the [com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository] handles the logic of refreshing the
+        // news from all the available data sources.
     }
 
 }

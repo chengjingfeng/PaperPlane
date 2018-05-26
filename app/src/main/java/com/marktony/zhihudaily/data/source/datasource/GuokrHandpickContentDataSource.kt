@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.datasource
 
 import com.marktony.zhihudaily.data.GuokrHandpickContentResult
+import com.marktony.zhihudaily.data.source.Result
 
 /**
  * Created by lizhaotailang on 2017/5/26.
@@ -26,16 +27,8 @@ import com.marktony.zhihudaily.data.GuokrHandpickContentResult
 
 interface GuokrHandpickContentDataSource {
 
-    interface LoadGuokrHandpickContentCallback {
+    suspend fun getGuokrHandpickContent(id: Int): Result<GuokrHandpickContentResult>
 
-        fun onContentLoaded(content: GuokrHandpickContentResult)
-
-        fun onDataNotAvailable()
-
-    }
-
-    fun getGuokrHandpickContent(id: Int, callback: LoadGuokrHandpickContentCallback)
-
-    fun saveContent(content: GuokrHandpickContentResult)
+    suspend fun saveContent(content: GuokrHandpickContentResult)
 
 }

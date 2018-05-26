@@ -16,11 +16,14 @@
 
 package com.marktony.zhihudaily.data.source.local
 
-import android.content.Context
-import android.os.AsyncTask
+import android.support.annotation.VisibleForTesting
 import com.marktony.zhihudaily.data.DoubanMomentContent
+import com.marktony.zhihudaily.data.source.LocalDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.DoubanMomentContentDataSource
-import com.marktony.zhihudaily.database.AppDatabase
+import com.marktony.zhihudaily.database.dao.DoubanMomentContentDao
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Created by lizhaotailang on 2017/5/25.
@@ -28,52 +31,40 @@ import com.marktony.zhihudaily.database.AppDatabase
  * Concrete implementation of a [DoubanMomentContent] data source as database.
  */
 
-class DoubanMomentContentLocalDataSource private constructor(context: Context) : DoubanMomentContentDataSource {
-
-    private val mDb: AppDatabase = AppDatabase.getInstance(context)
+class DoubanMomentContentLocalDataSource private constructor(
+        private val mAppExecutors: AppExecutors,
+        private val mDoubanMomentContentDao: DoubanMomentContentDao
+) : DoubanMomentContentDataSource {
 
     companion object {
 
         private var INSTANCE: DoubanMomentContentLocalDataSource? = null
 
-        fun getInstance(context: Context): DoubanMomentContentLocalDataSource {
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors, doubanMomentContentDao: DoubanMomentContentDao): DoubanMomentContentLocalDataSource {
             if (INSTANCE == null) {
-                INSTANCE = DoubanMomentContentLocalDataSource(context)
+                synchronized(DoubanMomentContentLocalDataSource::javaClass) {
+                    INSTANCE = DoubanMomentContentLocalDataSource(appExecutors, doubanMomentContentDao)
+                }
             }
             return INSTANCE!!
         }
+
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
+
     }
 
-    override fun getDoubanMomentContent(id: Int, callback: DoubanMomentContentDataSource.LoadDoubanMomentContentCallback) {
-
-        object : AsyncTask<Void, Void, DoubanMomentContent>() {
-
-            override fun doInBackground(vararg voids: Void): DoubanMomentContent {
-                return mDb!!.doubanMomentContentDao().queryContentById(id)
-            }
-
-            override fun onPostExecute(content: DoubanMomentContent?) {
-                super.onPostExecute(content)
-                if (content == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onContentLoaded(content)
-                }
-            }
-        }.execute()
+    override suspend fun getDoubanMomentContent(id: Int): Result<DoubanMomentContent> = withContext(mAppExecutors.ioContext) {
+        val content = mDoubanMomentContentDao.queryContentById(id)
+        if (content != null) Result.Success(content) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun saveContent(content: DoubanMomentContent) {
-        if (true) {
-            Thread {
-                mDb.beginTransaction()
-                try {
-                    mDb.doubanMomentContentDao().insert(content)
-                    mDb.setTransactionSuccessful()
-                } finally {
-                    mDb.endTransaction()
-                }
-            }.start()
+    override suspend fun saveContent(content: DoubanMomentContent) {
+        withContext(mAppExecutors.ioContext) {
+            mDoubanMomentContentDao.insert(content)
         }
     }
 

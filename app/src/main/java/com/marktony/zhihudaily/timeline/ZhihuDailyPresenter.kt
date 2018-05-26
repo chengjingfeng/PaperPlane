@@ -16,9 +16,11 @@
 
 package com.marktony.zhihudaily.timeline
 
-import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
-import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyNewsDataSource
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository
+import com.marktony.zhihudaily.util.launchSilent
+import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Created by lizhaotailang on 2017/5/21.
@@ -29,7 +31,8 @@ import com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository
 
 class ZhihuDailyPresenter(
         private val mView: ZhihuDailyContract.View,
-        private val mRepository: ZhihuDailyNewsRepository
+        private val mRepository: ZhihuDailyNewsRepository,
+        private val uiContext: CoroutineContext = UI
 ) : ZhihuDailyContract.Presenter {
 
     init {
@@ -40,22 +43,15 @@ class ZhihuDailyPresenter(
 
     }
 
-    override fun loadNews(forceUpdate: Boolean, clearCache: Boolean, date: Long) {
-
-        mRepository.getZhihuDailyNews(forceUpdate, clearCache, date, object : ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback {
-            override fun onNewsLoaded(list: List<ZhihuDailyNewsQuestion>) {
-                if (mView.isActive) {
-                    mView.showResult(list.toMutableList())
-                    mView.setLoadingIndicator(false)
-                }
+    override fun loadNews(forceUpdate: Boolean, clearCache: Boolean, date: Long) = launchSilent(uiContext) {
+        val result = mRepository.getZhihuDailyNews(forceUpdate, clearCache, date)
+        if (mView.isActive) {
+            if (result is Result.Success) {
+                mView.showResult(result.data.toMutableList())
             }
 
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.setLoadingIndicator(false)
-                }
-            }
-        })
+            mView.setLoadingIndicator(false)
+        }
     }
 
 }

@@ -16,11 +16,14 @@
 
 package com.marktony.zhihudaily.data.source.local
 
-import android.content.Context
-import android.os.AsyncTask
+import android.support.annotation.VisibleForTesting
 import com.marktony.zhihudaily.data.ZhihuDailyContent
+import com.marktony.zhihudaily.data.source.LocalDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyContentDataSource
-import com.marktony.zhihudaily.database.AppDatabase
+import com.marktony.zhihudaily.database.dao.ZhihuDailyContentDao
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Created by lizhaotailang on 2017/5/26.
@@ -28,51 +31,42 @@ import com.marktony.zhihudaily.database.AppDatabase
  * Concrete implementation of a [ZhihuDailyContent] data source as database.
  */
 
-class ZhihuDailyContentLocalDataSource private constructor(context: Context) : ZhihuDailyContentDataSource {
-
-    private var mDb: AppDatabase = AppDatabase.getInstance(context)
+class ZhihuDailyContentLocalDataSource private constructor(
+        val mAppExecutors: AppExecutors,
+        val mZhihuDailyContentDao: ZhihuDailyContentDao
+) : ZhihuDailyContentDataSource {
 
     companion object {
 
         private var INSTANCE: ZhihuDailyContentLocalDataSource? = null
 
-        fun getInstance(context: Context): ZhihuDailyContentLocalDataSource {
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors, zhihuDailyContentDao: ZhihuDailyContentDao): ZhihuDailyContentLocalDataSource {
             if (INSTANCE == null) {
-                INSTANCE = ZhihuDailyContentLocalDataSource(context)
+                synchronized(ZhihuDailyContentLocalDataSource::javaClass) {
+                    INSTANCE = ZhihuDailyContentLocalDataSource(appExecutors, zhihuDailyContentDao)
+                }
             }
             return INSTANCE!!
         }
+
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
+
     }
 
-    override fun getZhihuDailyContent(id: Int, callback: ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback) {
-        object : AsyncTask<Void, Void, ZhihuDailyContent>() {
-
-            override fun doInBackground(vararg voids: Void): ZhihuDailyContent {
-                return mDb!!.zhihuDailyContentDao().queryContentById(id)
-            }
-
-            override fun onPostExecute(content: ZhihuDailyContent?) {
-                super.onPostExecute(content)
-                if (content == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onContentLoaded(content)
-                }
-            }
-
-        }.execute()
+    override suspend fun getZhihuDailyContent(id: Int): Result<ZhihuDailyContent> = withContext(mAppExecutors.ioContext) {
+        val content = mZhihuDailyContentDao.queryContentById(id)
+        if (content != null) Result.Success(content) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun saveContent(content: ZhihuDailyContent) {
-        Thread {
-            mDb.beginTransaction()
-            try {
-                mDb.zhihuDailyContentDao().insert(content)
-                mDb.setTransactionSuccessful()
-            } finally {
-                mDb.endTransaction()
-            }
-        }.start()
+
+    override suspend fun saveContent(content: ZhihuDailyContent) {
+        withContext(mAppExecutors.ioContext) {
+            mZhihuDailyContentDao.insert(content)
+        }
     }
 
 }

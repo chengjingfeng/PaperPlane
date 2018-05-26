@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.datasource
 
 import com.marktony.zhihudaily.data.DoubanMomentNewsPosts
+import com.marktony.zhihudaily.data.source.Result
 
 /**
  * Created by lizhaotailang on 2017/5/21.
@@ -26,30 +27,14 @@ import com.marktony.zhihudaily.data.DoubanMomentNewsPosts
 
 interface DoubanMomentNewsDataSource {
 
-    interface LoadDoubanMomentDailyCallback {
+    suspend fun getDoubanMomentNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<DoubanMomentNewsPosts>>
 
-        fun onNewsLoaded(list: List<DoubanMomentNewsPosts>)
+    suspend fun getFavorites(): Result<List<DoubanMomentNewsPosts>>
 
-        fun onDataNotAvailable()
+    suspend fun getItem(id: Int): Result<DoubanMomentNewsPosts>
 
-    }
+    suspend fun favoriteItem(itemId: Int, favorite: Boolean)
 
-    interface GetNewsItemCallback {
-
-        fun onItemLoaded(item: DoubanMomentNewsPosts)
-
-        fun onDataNotAvailable()
-
-    }
-
-    fun getDoubanMomentNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: LoadDoubanMomentDailyCallback)
-
-    fun getFavorites(callback: LoadDoubanMomentDailyCallback)
-
-    fun getItem(id: Int, callback: GetNewsItemCallback)
-
-    fun favoriteItem(itemId: Int, favorite: Boolean)
-
-    fun saveAll(list: List<DoubanMomentNewsPosts>)
+    suspend fun saveAll(list: List<DoubanMomentNewsPosts>)
 
 }

@@ -16,11 +16,14 @@
 
 package com.marktony.zhihudaily.data.source.local
 
-import android.content.Context
-import android.os.AsyncTask
+import android.support.annotation.VisibleForTesting
 import com.marktony.zhihudaily.data.GuokrHandpickContentResult
+import com.marktony.zhihudaily.data.source.LocalDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickContentDataSource
-import com.marktony.zhihudaily.database.AppDatabase
+import com.marktony.zhihudaily.database.dao.GuokrHandpickContentDao
+import com.marktony.zhihudaily.util.AppExecutors
+import kotlinx.coroutines.experimental.withContext
 
 /**
  * Created by lizhaotailang on 2017/5/26.
@@ -28,56 +31,39 @@ import com.marktony.zhihudaily.database.AppDatabase
  * Concrete implementation of a [GuokrHandpickContentResult] data source as database.
  */
 
-class GuokrHandpickContentLocalDataSource private constructor(context: Context) : GuokrHandpickContentDataSource {
-
-    private var mDb: AppDatabase = AppDatabase.getInstance(context)
+class GuokrHandpickContentLocalDataSource private constructor(
+        val mAppExecutors: AppExecutors,
+        val mGuokrHandpickContentDao: GuokrHandpickContentDao
+) : GuokrHandpickContentDataSource {
 
     companion object {
 
         private var INSTANCE: GuokrHandpickContentLocalDataSource? = null
 
-        fun getInstance(context: Context): GuokrHandpickContentLocalDataSource {
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors, guokrHandpickContentDao: GuokrHandpickContentDao): GuokrHandpickContentLocalDataSource {
             if (INSTANCE == null) {
-                INSTANCE = GuokrHandpickContentLocalDataSource(context)
+                synchronized(GuokrHandpickContentLocalDataSource::javaClass) {
+                    INSTANCE = GuokrHandpickContentLocalDataSource(appExecutors, guokrHandpickContentDao)
+                }
             }
             return INSTANCE!!
         }
 
-        fun destroyInstance() {
+        @VisibleForTesting
+        fun clearInstance() {
             INSTANCE = null
         }
     }
 
-    override fun getGuokrHandpickContent(id: Int, callback: GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback) {
-
-        object : AsyncTask<Void, Void, GuokrHandpickContentResult>() {
-
-            override fun doInBackground(vararg voids: Void): GuokrHandpickContentResult {
-                return mDb!!.guokrHandpickContentDao().queryContentById(id)
-            }
-
-            override fun onPostExecute(content: GuokrHandpickContentResult?) {
-                super.onPostExecute(content)
-                if (content == null) {
-                    callback.onDataNotAvailable()
-                } else {
-                    callback.onContentLoaded(content)
-                }
-            }
-        }.execute()
+    override suspend fun getGuokrHandpickContent(id: Int): Result<GuokrHandpickContentResult> = withContext(mAppExecutors.ioContext) {
+        val content = mGuokrHandpickContentDao.queryContentById(id)
+        if (content != null) Result.Success(content) else Result.Error(LocalDataNotFoundException())
     }
 
-    override fun saveContent(content: GuokrHandpickContentResult) {
-        if (true) {
-            Thread {
-                mDb.beginTransaction()
-                try {
-                    mDb.guokrHandpickContentDao().insert(content)
-                    mDb.setTransactionSuccessful()
-                } finally {
-                    mDb.endTransaction()
-                }
-            }.start()
+    override suspend fun saveContent(content: GuokrHandpickContentResult) {
+        withContext(mAppExecutors.ioContext) {
+            mGuokrHandpickContentDao.insert(content)
         }
     }
 

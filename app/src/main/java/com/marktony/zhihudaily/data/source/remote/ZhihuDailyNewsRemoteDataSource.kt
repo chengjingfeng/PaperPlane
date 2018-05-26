@@ -16,17 +16,19 @@
 
 package com.marktony.zhihudaily.data.source.remote
 
-import android.util.Log
-
+import android.support.annotation.VisibleForTesting
+import com.marktony.zhihudaily.BuildConfig
 import com.marktony.zhihudaily.data.ZhihuDailyNews
 import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
+import com.marktony.zhihudaily.data.source.RemoteDataNotFoundException
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyNewsDataSource
 import com.marktony.zhihudaily.retrofit.RetrofitService
+import com.marktony.zhihudaily.util.AppExecutors
 import com.marktony.zhihudaily.util.formatZhihuDailyDateLongToString
-import com.marktony.zhihudaily.util.formatZhihuDailyDateStringToLong
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.experimental.withContext
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -36,72 +38,87 @@ import retrofit2.converter.gson.GsonConverterFactory
  * Implementation of the [ZhihuDailyNews] data source that accesses network.
  */
 
-class ZhihuDailyNewsRemoteDataSource private constructor() : ZhihuDailyNewsDataSource {
+class ZhihuDailyNewsRemoteDataSource private constructor(private val mAppExecutors: AppExecutors) : ZhihuDailyNewsDataSource {
+
+    private val mZhihuDailyService: RetrofitService.ZhihuDailyService by lazy {
+        val httpClientBuilder = OkHttpClient.Builder()
+
+        if (BuildConfig.DEBUG) {
+            httpClientBuilder.addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
+        }
+
+        httpClientBuilder.retryOnConnectionFailure(true)
+
+        val retrofit = Retrofit.Builder()
+                .baseUrl(RetrofitService.ZHIHU_DAILY_BASE)
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(httpClientBuilder.build())
+                .build()
+
+        retrofit.create(RetrofitService.ZhihuDailyService::class.java)
+    }
 
     companion object {
 
         private var INSTANCE: ZhihuDailyNewsRemoteDataSource? = null
 
-        val instance: ZhihuDailyNewsRemoteDataSource
-            get() {
-                if (INSTANCE == null) {
-                    INSTANCE = ZhihuDailyNewsRemoteDataSource()
+        @JvmStatic
+        fun getInstance(appExecutors: AppExecutors): ZhihuDailyNewsRemoteDataSource {
+            if (INSTANCE == null) {
+                synchronized(ZhihuDailyNewsRemoteDataSource::javaClass) {
+                    INSTANCE = ZhihuDailyNewsRemoteDataSource(appExecutors)
                 }
-                return INSTANCE!!
             }
+            return INSTANCE!!
+        }
+
+        @VisibleForTesting
+        fun clearInstance() {
+            INSTANCE = null
+        }
+
     }
 
-    // The parameter forceUpdate and addToCache are ignored.
-    override fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-
-        val retrofit = Retrofit.Builder()
-                .baseUrl(RetrofitService.ZHIHU_DAILY_BASE)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-        val service = retrofit.create(RetrofitService.ZhihuDailyService::class.java)
-
-        service.getZhihuList(formatZhihuDailyDateLongToString(date))
-                .enqueue(object : Callback<ZhihuDailyNews> {
-                    override fun onResponse(call: Call<ZhihuDailyNews>, response: Response<ZhihuDailyNews>) {
-
-                        // Note: Only the timestamp of zhihu daily was set in remote source.
-                        // The other two was set in repository due to structure of returning json.
-                        val timestamp = formatZhihuDailyDateStringToLong(response.body()!!.date)
-
-                        Log.d("TAG", "onResponse: timestamp $timestamp")
-
-                        for (item in response.body()!!.stories) {
-                            item.timestamp = timestamp
-                        }
-                        callback.onNewsLoaded(response.body()!!.stories)
+    override suspend fun getZhihuDailyNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<ZhihuDailyNewsQuestion>> = withContext(mAppExecutors.ioContext) {
+        try {
+            val response = mZhihuDailyService.getZhihuList(formatZhihuDailyDateLongToString(date)).execute()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    if (it.stories.isNotEmpty()) {
+                        Result.Success(it.stories)
+                    } else {
+                        Result.Error(RemoteDataNotFoundException())
                     }
-
-                    override fun onFailure(call: Call<ZhihuDailyNews>, t: Throwable) {
-                        callback.onDataNotAvailable()
-                    }
-                })
+                } ?: run {
+                    Result.Error(RemoteDataNotFoundException())
+                }
+            } else {
+                Result.Error(RemoteDataNotFoundException())
+            }
+        } catch (e: Exception) {
+            Result.Error(RemoteDataNotFoundException())
+        }
 
     }
 
-    override fun getFavorites(callback: ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
+    // Not required because the [com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository] handles the logic of refreshing the
+    // news from all the available data sources.
+    override suspend fun getFavorites(): Result<List<ZhihuDailyNewsQuestion>> = Result.Error(RemoteDataNotFoundException())
+
+    // Not required because the [com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository] handles the logic of refreshing the
+    // news from all the available data sources.
+    override suspend fun getItem(itemId: Int): Result<ZhihuDailyNewsQuestion> = Result.Error(RemoteDataNotFoundException())
+
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
+        // Not required because the [com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository] handles the logic of refreshing the
+        // news from all the available data sources.
     }
 
-    override fun getItem(itemId: Int, callback: ZhihuDailyNewsDataSource.GetNewsItemCallback) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
-    }
-
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
-    }
-
-    override fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
-        // Not required for the remote data source because the {@link TasksRepository} handles
-        // converting from a {@code taskId} to a {@link task} using its cached data.
+    override suspend fun saveAll(list: List<ZhihuDailyNewsQuestion>) {
+        // Not required because the [com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository] handles the logic of refreshing the
+        // news from all the available data sources.
     }
 
 }

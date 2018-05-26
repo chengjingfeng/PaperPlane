@@ -29,7 +29,7 @@ import com.marktony.zhihudaily.data.DoubanMomentContent
 interface DoubanMomentContentDao {
 
     @Query("SELECT * FROM douban_moment_content WHERE id = :id")
-    fun queryContentById(id: Int): DoubanMomentContent
+    fun queryContentById(id: Int): DoubanMomentContent?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(content: DoubanMomentContent)

@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.DoubanMomentNewsPosts
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.DoubanMomentNewsDataSource
 import com.marktony.zhihudaily.util.formatDoubanMomentDateStringToLong
 import java.util.*
@@ -55,83 +56,43 @@ class DoubanMomentNewsRepository private constructor(
         }
     }
 
-    override fun getDoubanMomentNews(forceUpdate: Boolean, clearCache: Boolean, date: Long, callback: DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback) {
-
+    override suspend fun getDoubanMomentNews(forceUpdate: Boolean, clearCache: Boolean, date: Long): Result<List<DoubanMomentNewsPosts>> {
         if (!forceUpdate) {
-            callback.onNewsLoaded(ArrayList(mCachedItems.values))
-            return
+            return Result.Success(mCachedItems.values.toList())
         }
 
-        mRemoteDataSource.getDoubanMomentNews(false, clearCache, date, object : DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback {
-            override fun onNewsLoaded(list: List<DoubanMomentNewsPosts>) {
-                refreshCache(clearCache, list)
-                callback.onNewsLoaded(ArrayList(mCachedItems.values))
+        val remoteResult = mRemoteDataSource.getDoubanMomentNews(false, clearCache, date)
+        return if (remoteResult is Result.Success) {
+            refreshCache(clearCache, remoteResult.data)
+            saveAll(remoteResult.data)
 
-                saveAll(list)
+            remoteResult
+        } else {
+            mLocalDataSource.getDoubanMomentNews(false, clearCache, date).also {
+                if (it is Result.Success) {
+                    refreshCache(clearCache, it.data)
+                }
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getDoubanMomentNews(false, clearCache, date, object : DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback {
-                    override fun onNewsLoaded(list: List<DoubanMomentNewsPosts>) {
-                        refreshCache(clearCache, list)
-                        callback.onNewsLoaded(ArrayList(mCachedItems.values))
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
-
+        }
     }
 
-    override fun getFavorites(callback: DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback) {
-        mLocalDataSource.getFavorites(object : DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback {
-            override fun onNewsLoaded(list: List<DoubanMomentNewsPosts>) {
-                callback.onNewsLoaded(list)
-            }
+    override suspend fun getFavorites(): Result<List<DoubanMomentNewsPosts>> = mLocalDataSource.getFavorites()
 
-            override fun onDataNotAvailable() {
-                callback.onDataNotAvailable()
-            }
-        })
-    }
-
-    override fun getItem(id: Int, callback: DoubanMomentNewsDataSource.GetNewsItemCallback) {
+    override suspend fun getItem(id: Int): Result<DoubanMomentNewsPosts> {
         val cachedItem = getItemWithId(id)
 
         if (cachedItem != null) {
-            callback.onItemLoaded(cachedItem)
-            return
+            return Result.Success(cachedItem)
         }
 
-        mLocalDataSource.getItem(id, object : DoubanMomentNewsDataSource.GetNewsItemCallback {
-            override fun onItemLoaded(item: DoubanMomentNewsPosts) {
-                if (false) {
-                    mCachedItems = LinkedHashMap()
-                }
-                mCachedItems[item.id] = item
-                callback.onItemLoaded(item)
+        return mLocalDataSource.getItem(id).also {
+            if (it is Result.Success) {
+                mCachedItems[it.data.id] = it.data
             }
-
-            override fun onDataNotAvailable() {
-                mRemoteDataSource.getItem(id, object : DoubanMomentNewsDataSource.GetNewsItemCallback {
-                    override fun onItemLoaded(item: DoubanMomentNewsPosts) {
-                        mCachedItems[item.id] = item
-                        callback.onItemLoaded(item)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        mRemoteDataSource.favoriteItem(itemId, favorite)
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
         mLocalDataSource.favoriteItem(itemId, favorite)
 
         val cachedItem = getItemWithId(itemId)
@@ -140,19 +101,16 @@ class DoubanMomentNewsRepository private constructor(
         }
     }
 
-    override fun saveAll(list: List<DoubanMomentNewsPosts>) {
+    override suspend fun saveAll(list: List<DoubanMomentNewsPosts>) {
         for (item in list) {
-            // Set the timestamp.
             item.timestamp = formatDoubanMomentDateStringToLong(item.publishedTime)
             mCachedItems[item.id] = item
         }
 
         mLocalDataSource.saveAll(list)
-        mRemoteDataSource.saveAll(list)
     }
 
     private fun refreshCache(clearCache: Boolean, list: List<DoubanMomentNewsPosts>) {
-
         if (clearCache) {
             mCachedItems.clear()
         }

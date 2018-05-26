@@ -16,15 +16,13 @@
 
 package com.marktony.zhihudaily.favorites
 
-import com.marktony.zhihudaily.data.DoubanMomentNewsPosts
-import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
-import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
-import com.marktony.zhihudaily.data.source.datasource.DoubanMomentNewsDataSource
-import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickDataSource
-import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyNewsDataSource
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository
 import com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository
 import com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository
+import com.marktony.zhihudaily.util.launchSilent
+import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Created by lizhaotailang on 2017/6/6.
@@ -37,7 +35,8 @@ class FavoritesPresenter(
         private val mView: FavoritesContract.View,
         private val mZhihuRepository: ZhihuDailyNewsRepository,
         private val mDoubanRepository: DoubanMomentNewsRepository,
-        private val mGuokrRepository: GuokrHandpickNewsRepository
+        private val mGuokrRepository: GuokrHandpickNewsRepository,
+        private val uiContext: CoroutineContext = UI
 ) : FavoritesContract.Presenter {
 
     init {
@@ -48,36 +47,17 @@ class FavoritesPresenter(
 
     }
 
-    override fun loadFavorites() {
-        mZhihuRepository.getFavorites(object : ZhihuDailyNewsDataSource.LoadZhihuDailyNewsCallback {
-            override fun onNewsLoaded(zhihuList: List<ZhihuDailyNewsQuestion>) {
+    override fun loadFavorites() = launchSilent(uiContext) {
+        val zhihuResult = mZhihuRepository.getFavorites()
+        val doubanResult = mDoubanRepository.getFavorites()
+        val guokrResult = mGuokrRepository.getFavorites()
 
-                mDoubanRepository.getFavorites(object : DoubanMomentNewsDataSource.LoadDoubanMomentDailyCallback {
-                    override fun onNewsLoaded(doubanList: List<DoubanMomentNewsPosts>) {
-
-                        mGuokrRepository.getFavorites(object : GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback {
-                            override fun onNewsLoad(guokrList: List<GuokrHandpickNewsResult>) {
-                                if (mView.isActive) {
-                                    mView.showFavorites(zhihuList.toMutableList(), doubanList.toMutableList(), guokrList.toMutableList())
-                                }
-                                mView.setLoadingIndicator(false)
-                            }
-
-                            override fun onDataNotAvailable() {
-                                mView.setLoadingIndicator(false)
-                            }
-                        })
-                    }
-
-                    override fun onDataNotAvailable() {
-
-                    }
-                })
-            }
-
-            override fun onDataNotAvailable() {
-
-            }
-        })
+        if (mView.isActive) {
+            mView.showFavorites(
+                    (zhihuResult as? Result.Success)?.data?.toMutableList() ?: mutableListOf(),
+                    (doubanResult as? Result.Success)?.data?.toMutableList() ?: mutableListOf(),
+                    (guokrResult as? Result.Success)?.data?.toMutableList() ?: mutableListOf())
+            mView.setLoadingIndicator(false)
+        }
     }
 }

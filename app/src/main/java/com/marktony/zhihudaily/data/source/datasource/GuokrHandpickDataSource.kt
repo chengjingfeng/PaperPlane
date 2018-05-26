@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.datasource
 
 import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
+import com.marktony.zhihudaily.data.source.Result
 
 /**
  * Created by lizhaotailang on 2017/5/24.
@@ -26,30 +27,14 @@ import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
 
 interface GuokrHandpickDataSource {
 
-    interface LoadGuokrHandpickNewsCallback {
+    suspend fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int): Result<List<GuokrHandpickNewsResult>>
 
-        fun onNewsLoad(list: List<GuokrHandpickNewsResult>)
+    suspend fun getFavorites(): Result<List<GuokrHandpickNewsResult>>
 
-        fun onDataNotAvailable()
+    suspend fun getItem(itemId: Int): Result<GuokrHandpickNewsResult>
 
-    }
+    suspend fun favoriteItem(itemId: Int, favorite: Boolean)
 
-    interface GetNewsItemCallback {
-
-        fun onItemLoaded(item: GuokrHandpickNewsResult)
-
-        fun onDataNotAvailable()
-
-    }
-
-    fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int, callback: LoadGuokrHandpickNewsCallback)
-
-    fun getFavorites(callback: LoadGuokrHandpickNewsCallback)
-
-    fun getItem(itemId: Int, callback: GetNewsItemCallback)
-
-    fun favoriteItem(itemId: Int, favorite: Boolean)
-
-    fun saveAll(list: List<GuokrHandpickNewsResult>)
+    suspend fun saveAll(list: List<GuokrHandpickNewsResult>)
 
 }

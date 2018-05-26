@@ -21,19 +21,12 @@ import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.app.AppCompatActivity
 import com.marktony.zhihudaily.R
-import com.marktony.zhihudaily.data.source.local.DoubanMomentNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.local.GuokrHandpickNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.local.ZhihuDailyNewsLocalDataSource
-import com.marktony.zhihudaily.data.source.remote.DoubanMomentNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.remote.GuokrHandpickNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.remote.ZhihuDailyNewsRemoteDataSource
-import com.marktony.zhihudaily.data.source.repository.DoubanMomentNewsRepository
-import com.marktony.zhihudaily.data.source.repository.GuokrHandpickNewsRepository
-import com.marktony.zhihudaily.data.source.repository.ZhihuDailyNewsRepository
 import com.marktony.zhihudaily.favorites.FavoritesFragment
 import com.marktony.zhihudaily.favorites.FavoritesPresenter
+import com.marktony.zhihudaily.injection.Injection
 import com.marktony.zhihudaily.service.CacheService
 import com.marktony.zhihudaily.timeline.TimelineFragment
+import com.marktony.zhihudaily.util.AppExecutors
 import kotlinx.android.synthetic.main.activity_main.*
 
 /**
@@ -62,11 +55,12 @@ class MainActivity : AppCompatActivity() {
 
         initFragments(savedInstanceState)
 
+        val appExecutors = AppExecutors()
         FavoritesPresenter(
                 mFavoritesFragment,
-                ZhihuDailyNewsRepository.getInstance(ZhihuDailyNewsRemoteDataSource.instance, ZhihuDailyNewsLocalDataSource.getInstance(this@MainActivity)),
-                DoubanMomentNewsRepository.getInstance(DoubanMomentNewsRemoteDataSource.instance, DoubanMomentNewsLocalDataSource.getInstance(this@MainActivity)),
-                GuokrHandpickNewsRepository.getInstance(GuokrHandpickNewsRemoteDataSource.instance, GuokrHandpickNewsLocalDataSource.getInstance(this@MainActivity)))
+                Injection.provideZhihuDailyNewsRepository(this@MainActivity),
+                Injection.provideDoubanMomentNewsRepository(this@MainActivity),
+                Injection.provideGuokrHandpickNewsRepository(this@MainActivity))
 
         if (savedInstanceState != null) {
             val id = savedInstanceState.getInt(KEY_BOTTOM_NAVIGATION_VIEW_SELECTED_ID, R.id.nav_timeline)

@@ -32,7 +32,7 @@ interface GuokrHandpickNewsDao {
     fun queryAllByOffsetAndLimit(offset: Int, limit: Int): List<GuokrHandpickNewsResult>
 
     @Query("SELECT * FROM guokr_handpick_news WHERE id = :id")
-    fun queryItemById(id: Int): GuokrHandpickNewsResult
+    fun queryItemById(id: Int): GuokrHandpickNewsResult?
 
     @Query("SELECT * FROM guokr_handpick_news WHERE favorite = 1")
     fun queryAllFavorites(): List<GuokrHandpickNewsResult>

@@ -17,12 +17,12 @@
 package com.marktony.zhihudaily.details
 
 import com.marktony.zhihudaily.R
-import com.marktony.zhihudaily.data.*
-import com.marktony.zhihudaily.data.source.datasource.DoubanMomentContentDataSource
-import com.marktony.zhihudaily.data.source.datasource.DoubanMomentNewsDataSource
-import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickContentDataSource
-import com.marktony.zhihudaily.data.source.datasource.ZhihuDailyContentDataSource
+import com.marktony.zhihudaily.data.ContentType
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.repository.*
+import com.marktony.zhihudaily.util.launchSilent
+import kotlinx.coroutines.experimental.android.UI
+import kotlin.coroutines.experimental.CoroutineContext
 
 /**
  * Created by lizhaotailang on 2017/5/24.
@@ -34,6 +34,7 @@ import com.marktony.zhihudaily.data.source.repository.*
 class DetailsPresenter : DetailsContract.Presenter {
 
     private val mView: DetailsContract.View
+    private val uiContext: CoroutineContext = UI
 
     private var mDoubanNewsRepository: DoubanMomentNewsRepository? = null
     private var mDoubanContentRepository: DoubanMomentContentRepository? = null
@@ -75,7 +76,7 @@ class DetailsPresenter : DetailsContract.Presenter {
 
     }
 
-    override fun favorite(type: ContentType, id: Int, favorite: Boolean) {
+    override fun favorite(type: ContentType, id: Int, favorite: Boolean) = launchSilent(uiContext) {
         when {
             type === ContentType.TYPE_ZHIHU_DAILY -> mZhihuNewsRepository?.favoriteItem(id, favorite)
             type === ContentType.TYPE_DOUBAN_MOMENT -> mDoubanNewsRepository?.favoriteItem(id, favorite)
@@ -83,73 +84,50 @@ class DetailsPresenter : DetailsContract.Presenter {
         }
     }
 
-    override fun loadDoubanContent(id: Int) {
-        mDoubanContentRepository?.getDoubanMomentContent(id, object : DoubanMomentContentDataSource.LoadDoubanMomentContentCallback {
-
-            override fun onContentLoaded(content: DoubanMomentContent) {
-                mDoubanNewsRepository?.getItem(id, object : DoubanMomentNewsDataSource.GetNewsItemCallback {
-                    override fun onItemLoaded(item: DoubanMomentNewsPosts) {
-                        if (mView.isActive) {
-                            mView.showDoubanMomentContent(content, item.thumbs)
-                        }
-                    }
-
-                    override fun onDataNotAvailable() {
-                        if (mView.isActive) {
-                            mView.showMessage(R.string.something_wrong)
-                        }
-                    }
-                })
+    override fun loadDoubanContent(id: Int) = launchSilent(uiContext) {
+        val result = mDoubanContentRepository?.getDoubanMomentContent(id)
+        val newsResult = mDoubanNewsRepository?.getItem(id)
+        if (mView.isActive) {
+            if (result != null
+                    && newsResult != null
+                    && result is Result.Success
+                    && newsResult is Result.Success) {
+                mView.showDoubanMomentContent(result.data, newsResult.data.thumbs)
+            } else {
+                mView.showMessage(R.string.something_wrong)
             }
-
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.showMessage(R.string.something_wrong)
-                }
-            }
-        })
+        }
     }
 
-    override fun loadZhihuDailyContent(id: Int) {
-        mZhihuContentRepository?.getZhihuDailyContent(id, object : ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback {
-
-            override fun onContentLoaded(content: ZhihuDailyContent) {
-                if (mView.isActive) {
-                    mView.showZhihuDailyContent(content)
-                }
+    override fun loadZhihuDailyContent(id: Int) = launchSilent(uiContext) {
+        val result = mZhihuContentRepository?.getZhihuDailyContent(id)
+        if (mView.isActive) {
+            if (result != null && result is Result.Success) {
+                mView.showZhihuDailyContent(result.data)
+            } else {
+                mView.showMessage(R.string.something_wrong)
             }
-
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.showMessage(R.string.something_wrong)
-                }
-            }
-        })
+        }
     }
 
-    override fun loadGuokrHandpickContent(id: Int) {
-        mGuokrContentRepository?.getGuokrHandpickContent(id, object : GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback {
-
-            override fun onContentLoaded(content: GuokrHandpickContentResult) {
-                if (mView.isActive) {
-                    mView.showGuokrHandpickContent(content)
-                }
+    override fun loadGuokrHandpickContent(id: Int) = launchSilent(uiContext) {
+        val result = mGuokrContentRepository?.getGuokrHandpickContent(id)
+        if (mView.isActive) {
+            if (result != null && result is Result.Success) {
+                mView.showGuokrHandpickContent(result.data)
+            } else {
+                mView.showMessage(R.string.something_wrong)
             }
-
-            override fun onDataNotAvailable() {
-                if (mView.isActive) {
-                    mView.showMessage(R.string.something_wrong)
-                }
-            }
-        })
+        }
     }
 
-    override fun getLink(type: ContentType, requestCode: Int, id: Int) {
+    override fun getLink(type: ContentType, requestCode: Int, id: Int) = launchSilent(uiContext) {
         when (type) {
-            ContentType.TYPE_ZHIHU_DAILY -> mZhihuContentRepository?.getZhihuDailyContent(id, object : ZhihuDailyContentDataSource.LoadZhihuDailyContentCallback {
-                override fun onContentLoaded(content: ZhihuDailyContent) {
-                    if (mView.isActive) {
-                        val url = content.shareUrl
+            ContentType.TYPE_ZHIHU_DAILY -> {
+                val result = mZhihuContentRepository?.getZhihuDailyContent(id)
+                if (mView.isActive) {
+                    if (result != null && result is Result.Success) {
+                        val url = result.data.shareUrl
                         if (requestCode == DetailsFragment.REQUEST_SHARE) {
                             mView.share(url)
                         } else if (requestCode == DetailsFragment.REQUEST_COPY_LINK) {
@@ -157,19 +135,16 @@ class DetailsPresenter : DetailsContract.Presenter {
                         } else if (requestCode == DetailsFragment.REQUEST_OPEN_WITH_BROWSER) {
                             mView.openWithBrowser(url)
                         }
-                    }
-                }
-
-                override fun onDataNotAvailable() {
-                    if (mView.isActive) {
+                    } else {
                         mView.showMessage(R.string.share_error)
                     }
                 }
-            })
-            ContentType.TYPE_DOUBAN_MOMENT -> mDoubanContentRepository?.getDoubanMomentContent(id, object : DoubanMomentContentDataSource.LoadDoubanMomentContentCallback {
-                override fun onContentLoaded(content: DoubanMomentContent) {
-                    if (mView.isActive) {
-                        val url = content.url
+            }
+            ContentType.TYPE_DOUBAN_MOMENT -> {
+                val result = mDoubanContentRepository?.getDoubanMomentContent(id)
+                if (mView.isActive) {
+                    if (result != null && result is Result.Success) {
+                        val url = result.data.url
                         if (requestCode == DetailsFragment.REQUEST_SHARE) {
                             mView.share(url)
                         } else if (requestCode == DetailsFragment.REQUEST_COPY_LINK) {
@@ -177,19 +152,16 @@ class DetailsPresenter : DetailsContract.Presenter {
                         } else if (requestCode == DetailsFragment.REQUEST_OPEN_WITH_BROWSER) {
                             mView.openWithBrowser(url)
                         }
-                    }
-                }
-
-                override fun onDataNotAvailable() {
-                    if (mView.isActive) {
+                    } else {
                         mView.showMessage(R.string.share_error)
                     }
                 }
-            })
-            ContentType.TYPE_GUOKR_HANDPICK -> mGuokrContentRepository?.getGuokrHandpickContent(id, object : GuokrHandpickContentDataSource.LoadGuokrHandpickContentCallback {
-                override fun onContentLoaded(content: GuokrHandpickContentResult) {
-                    if (mView.isActive) {
-                        val url = content.url
+            }
+            ContentType.TYPE_GUOKR_HANDPICK -> {
+                val result = mGuokrContentRepository?.getGuokrHandpickContent(id)
+                if (mView.isActive) {
+                    if (result != null && result is Result.Success) {
+                        val url = result.data.url
                         if (requestCode == DetailsFragment.REQUEST_SHARE) {
                             mView.share(url)
                         } else if (requestCode == DetailsFragment.REQUEST_COPY_LINK) {
@@ -197,15 +169,11 @@ class DetailsPresenter : DetailsContract.Presenter {
                         } else if (requestCode == DetailsFragment.REQUEST_OPEN_WITH_BROWSER) {
                             mView.openWithBrowser(url)
                         }
-                    }
-                }
-
-                override fun onDataNotAvailable() {
-                    if (mView.isActive) {
+                    } else {
                         mView.showMessage(R.string.share_error)
                     }
                 }
-            })
+            }
         }
     }
 }

@@ -17,6 +17,7 @@
 package com.marktony.zhihudaily.data.source.repository
 
 import com.marktony.zhihudaily.data.GuokrHandpickNewsResult
+import com.marktony.zhihudaily.data.source.Result
 import com.marktony.zhihudaily.data.source.datasource.GuokrHandpickDataSource
 import com.marktony.zhihudaily.util.formatGuokrHandpickTimeStringToLong
 import java.util.*
@@ -54,83 +55,43 @@ class GuokrHandpickNewsRepository private constructor(
         }
     }
 
-    override fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int, callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
-
+    override suspend fun getGuokrHandpickNews(forceUpdate: Boolean, clearCache: Boolean, offset: Int, limit: Int): Result<List<GuokrHandpickNewsResult>> {
         if (!forceUpdate) {
-            callback.onNewsLoad(ArrayList(mCachedItems.values))
-            return
+            return Result.Success(mCachedItems.values.toList())
         }
 
-        mRemoteDataSource.getGuokrHandpickNews(false, clearCache, offset, limit, object : GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback {
-            override fun onNewsLoad(list: List<GuokrHandpickNewsResult>) {
-                refreshCache(clearCache, list)
-                callback.onNewsLoad(ArrayList(mCachedItems.values))
+        val remoteResult = mRemoteDataSource.getGuokrHandpickNews(false, clearCache, offset, limit)
+        return if (remoteResult is Result.Success) {
+            refreshCache(clearCache, remoteResult.data)
+            saveAll(remoteResult.data)
 
-                // Save whole list to database.
-                saveAll(list)
+            remoteResult
+        } else {
+            mLocalDataSource.getGuokrHandpickNews(false, clearCache, offset, limit).also {
+                if (it is Result.Success) {
+                    refreshCache(clearCache, it.data)
+                }
             }
-
-            override fun onDataNotAvailable() {
-                mLocalDataSource.getGuokrHandpickNews(false, clearCache, offset, limit, object : GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback {
-                    override fun onNewsLoad(list: List<GuokrHandpickNewsResult>) {
-                        refreshCache(clearCache, list)
-                        callback.onNewsLoad(ArrayList(mCachedItems.values))
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun getFavorites(callback: GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback) {
+    override suspend fun getFavorites(): Result<List<GuokrHandpickNewsResult>> = mLocalDataSource.getFavorites()
 
-        mLocalDataSource.getFavorites(object : GuokrHandpickDataSource.LoadGuokrHandpickNewsCallback {
-            override fun onNewsLoad(list: List<GuokrHandpickNewsResult>) {
-                callback.onNewsLoad(list)
-            }
-
-            override fun onDataNotAvailable() {
-                callback.onDataNotAvailable()
-            }
-        })
-
-    }
-
-    override fun getItem(itemId: Int, callback: GuokrHandpickDataSource.GetNewsItemCallback) {
+    override suspend fun getItem(itemId: Int): Result<GuokrHandpickNewsResult> {
         val item = getItemWithId(itemId)
 
         if (item != null) {
-            callback.onItemLoaded(item)
-            return
+            return Result.Success(item)
         }
 
-        mLocalDataSource.getItem(itemId, object : GuokrHandpickDataSource.GetNewsItemCallback {
-
-            override fun onItemLoaded(item: GuokrHandpickNewsResult) {
-                mCachedItems[item.id] = item
-                callback.onItemLoaded(item)
+        return mLocalDataSource.getItem(itemId).apply {
+            if (this is Result.Success) {
+                mCachedItems[this.data.id] = this.data
             }
-
-            override fun onDataNotAvailable() {
-                mRemoteDataSource.getItem(itemId, object : GuokrHandpickDataSource.GetNewsItemCallback {
-                    override fun onItemLoaded(item: GuokrHandpickNewsResult) {
-                        mCachedItems[item.id] = item
-                        callback.onItemLoaded(item)
-                    }
-
-                    override fun onDataNotAvailable() {
-                        callback.onDataNotAvailable()
-                    }
-                })
-            }
-        })
+        }
     }
 
-    override fun favoriteItem(itemId: Int, favorite: Boolean) {
-        mRemoteDataSource.favoriteItem(itemId, favorite)
+    override suspend fun favoriteItem(itemId: Int, favorite: Boolean) {
         mLocalDataSource.favoriteItem(itemId, favorite)
 
         val cachedItem = getItemWithId(itemId)
@@ -139,16 +100,13 @@ class GuokrHandpickNewsRepository private constructor(
         }
     }
 
-    override fun saveAll(list: List<GuokrHandpickNewsResult>) {
+    override suspend fun saveAll(list: List<GuokrHandpickNewsResult>) {
         for (item in list) {
-            // Set the timestamp.
             item.timestamp = formatGuokrHandpickTimeStringToLong(item.datePublished)
             mCachedItems[item.id] = item
         }
 
         mLocalDataSource.saveAll(list)
-        mRemoteDataSource.saveAll(list)
-
     }
 
     private fun refreshCache(clearCache: Boolean, list: List<GuokrHandpickNewsResult>) {

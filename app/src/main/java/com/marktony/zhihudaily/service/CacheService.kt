@@ -143,9 +143,9 @@ class CacheService : Service() {
             try {
                 // Call execute() rather than enqueue()
                 // or you will go back to main thread in onResponse() function.
-                val tmp = mZhihuService.getZhihuContent(id).execute().body()
-                if (tmp != null) {
-                    mDb.zhihuDailyContentDao().insert(tmp)
+                val response = mZhihuService.getZhihuContent(id).execute()
+                if (response.isSuccessful && response.body() != null) {
+                    mDb.zhihuDailyContentDao().insert(response.body()!!)
                     mDb.setTransactionSuccessful()
                 }
             } catch (e: IOException) {
@@ -166,11 +166,9 @@ class CacheService : Service() {
         Thread {
             mDb.beginTransaction()
             try {
-                // Call execute() rather than enqueue()
-                // or you will go back to main thread in onResponse() function.
-                val tmp = mDoubanService.getDoubanContent(id).execute().body()
-                if (tmp != null) {
-                    mDb.doubanMomentContentDao().insert(tmp)
+                val response = mDoubanService.getDoubanContent(id).execute()
+                if (response.isSuccessful && response.body() != null) {
+                    mDb.doubanMomentContentDao().insert(response.body()!!)
                     mDb.setTransactionSuccessful()
                 }
             } catch (e: IOException) {
@@ -192,9 +190,9 @@ class CacheService : Service() {
             try {
                 // Call execute() rather than enqueue()
                 // or you will go back to main thread in onResponse() function.
-                val tmp = mGuokrService.getGuokrContent(id).execute().body()?.result
-                if (tmp != null) {
-                    mDb.guokrHandpickContentDao().insert(tmp)
+                val response = mGuokrService.getGuokrContent(id).execute()
+                if (response.isSuccessful && response.body()?.result != null) {
+                    mDb.guokrHandpickContentDao().insert(response.body()?.result!!)
                     mDb.setTransactionSuccessful()
                 }
             } catch (e: IOException) {
@@ -222,21 +220,27 @@ class CacheService : Service() {
                 val zhihuTimeoutItems = mDb.zhihuDailyNewsDao().queryAllTimeoutItems(timeInMillis)
                 zhihuTimeoutItems.forEach {
                     mDb.zhihuDailyNewsDao().delete(it)
-                    mDb.zhihuDailyContentDao().delete(mDb.zhihuDailyContentDao().queryContentById(it.id))
+                    mDb.zhihuDailyContentDao().queryContentById(it.id)?.let {
+                        mDb.zhihuDailyContentDao().delete(it)
+                    }
                 }
 
                 // Clear cache of guokr handpick
                 val guokrTimeoutNews = mDb.guokrHandpickNewsDao().queryAllTimeoutItems(timeInMillis)
                 for (r in guokrTimeoutNews) {
                     mDb.guokrHandpickNewsDao().delete(r)
-                    mDb.guokrHandpickContentDao().delete(mDb.guokrHandpickContentDao().queryContentById(r.id))
+                    mDb.guokrHandpickContentDao().queryContentById(r.id)?.let {
+                        mDb.guokrHandpickContentDao().delete(it)
+                    }
                 }
 
                 // Clear cache of douban moment
                 val doubanTimeoutNews = mDb.doubanMomentNewsDao().queryAllTimeoutItems(timeInMillis)
                 for (p in doubanTimeoutNews) {
                     mDb.doubanMomentNewsDao().delete(p)
-                    mDb.doubanMomentContentDao().delete(mDb.doubanMomentContentDao().queryContentById(p.id))
+                    mDb.doubanMomentContentDao().queryContentById(p.id)?.let {
+                        mDb.doubanMomentContentDao().delete(it)
+                    }
                 }
 
                 mHandler.sendEmptyMessage(MSG_CLEAR_CACHE_DONE)

@@ -29,7 +29,7 @@ import com.marktony.zhihudaily.data.GuokrHandpickContentResult
 interface GuokrHandpickContentDao {
 
     @Query("SELECT * FROM guokr_handpick_content WHERE id = :id")
-    fun queryContentById(id: Int): GuokrHandpickContentResult
+    fun queryContentById(id: Int): GuokrHandpickContentResult?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun insert(content: GuokrHandpickContentResult)

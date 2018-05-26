@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package com.marktony.zhihudaily.data.source.datasource
+package com.marktony.zhihudaily.data.source
 
-import com.marktony.zhihudaily.data.ZhihuDailyContent
-import com.marktony.zhihudaily.data.source.Result
+sealed class Result<out T : Any> {
 
-/**
- * Created by lizhaotailang on 2017/5/25.
- *
- * Main entry point for accessing the [ZhihuDailyContent] data.
- */
+    class Success<out T : Any>(val data: T) : Result<T>()
 
-interface ZhihuDailyContentDataSource {
-
-    suspend fun getZhihuDailyContent(id: Int): Result<ZhihuDailyContent>
-
-    suspend fun saveContent(content: ZhihuDailyContent)
+    class Error(val exception: Throwable) : Result<Nothing>()
 
 }
