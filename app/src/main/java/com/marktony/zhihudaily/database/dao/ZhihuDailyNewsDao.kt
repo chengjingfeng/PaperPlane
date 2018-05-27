@@ -28,7 +28,7 @@ import com.marktony.zhihudaily.data.ZhihuDailyNewsQuestion
 @Dao
 interface ZhihuDailyNewsDao {
 
-    @Query("SELECT * FROM zhihu_daily_news WHERE timestamp < :timestamp ORDER BY timestamp ASC")
+    @Query("SELECT * FROM zhihu_daily_news WHERE timestamp <= :timestamp ORDER BY timestamp ASC")
     fun queryAllByDate(timestamp: Long): List<ZhihuDailyNewsQuestion>
 
     @Query("SELECT * FROM zhihu_daily_news WHERE id = :id")

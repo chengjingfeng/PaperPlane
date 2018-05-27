@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3982e426923077d36944650a68cc43b4",
+    "identityHash": "6a1a9687ab0f964935f150c532ae6ba1",
     "entities": [
       {
         "tableName": "zhihu_daily_news",
@@ -262,7 +262,7 @@
       },
       {
         "tableName": "guokr_handpick_news",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`image` TEXT NOT NULL, `is_replyable` INTEGER NOT NULL, `channels` TEXT, `channel_keys` TEXT, `preface` TEXT NOT NULL, `id` INTEGER NOT NULL, `copyright` TEXT NOT NULL, `image_description` TEXT NOT NULL, `is_show_summary` INTEGER NOT NULL, `minisite_key` TEXT NOT NULL, `subject_key` TEXT NOT NULL, `tags` TEXT, `date_published` TEXT NOT NULL, `avatar` TEXT, `replies_count` INTEGER NOT NULL, `is_author_external` INTEGER NOT NULL, `recommends_count` INTEGER NOT NULL, `title_hide` TEXT NOT NULL, `date_modified` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `small_image` TEXT NOT NULL, `summary` TEXT NOT NULL, `ukey_author` TEXT NOT NULL, `date_created` TEXT NOT NULL, `resource_url` TEXT NOT NULL, `favorite` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `channel_url` TEXT NOT NULL, `channel_date_created` TEXT NOT NULL, `channel_name` TEXT NOT NULL, `channel_key` TEXT NOT NULL, `channel_articles_count` INTEGER NOT NULL, `author_ukey` TEXT NOT NULL, `author_is_title_authorized` TEXT NOT NULL, `author_nickname` TEXT NOT NULL, `author_master_category` TEXT NOT NULL, `author_amended_reliability` TEXT NOT NULL, `author_is_exists` INTEGER NOT NULL, `author_title` TEXT NOT NULL, `author_url` TEXT NOT NULL, `author_gender` TEXT NOT NULL, `author_followers_count` INTEGER NOT NULL, `author_resource_url` TEXT NOT NULL, `avatar_large` TEXT NOT NULL, `avatar_small` TEXT NOT NULL, `avatar_normal` TEXT NOT NULL, `image_info_url` TEXT NOT NULL, `image_info_width` INTEGER NOT NULL, `image_info_height` INTEGER NOT NULL, `minisite_name` TEXT NOT NULL, `minisite_url` TEXT NOT NULL, `minisite_introduction` TEXT NOT NULL, `minisite__key` TEXT NOT NULL, `minisite_date_created` TEXT NOT NULL, `minisite_icon` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`image` TEXT NOT NULL, `is_replyable` INTEGER NOT NULL, `channels` TEXT, `channel_keys` TEXT, `preface` TEXT NOT NULL, `id` INTEGER NOT NULL, `copyright` TEXT NOT NULL, `image_description` TEXT NOT NULL, `is_show_summary` INTEGER NOT NULL, `minisite_key` TEXT NOT NULL, `subject_key` TEXT NOT NULL, `tags` TEXT, `date_published` TEXT NOT NULL, `avatar` TEXT, `replies_count` INTEGER NOT NULL, `is_author_external` INTEGER NOT NULL, `recommends_count` INTEGER NOT NULL, `title_hide` TEXT NOT NULL, `date_modified` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `small_image` TEXT NOT NULL, `summary` TEXT NOT NULL, `ukey_author` TEXT NOT NULL, `date_created` TEXT NOT NULL, `resource_url` TEXT NOT NULL, `favorite` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `channel_url` TEXT NOT NULL, `channel_date_created` TEXT NOT NULL, `channel_name` TEXT NOT NULL, `channel_key` TEXT NOT NULL, `channel_articles_count` INTEGER NOT NULL, `author_ukey` TEXT NOT NULL, `author_is_title_authorized` INTEGER NOT NULL, `author_nickname` TEXT NOT NULL, `author_master_category` TEXT NOT NULL, `author_amended_reliability` TEXT NOT NULL, `author_is_exists` INTEGER NOT NULL, `author_title` TEXT NOT NULL, `author_url` TEXT NOT NULL, `author_gender` TEXT, `author_followers_count` INTEGER NOT NULL, `author_resource_url` TEXT NOT NULL, `avatar_large` TEXT NOT NULL, `avatar_small` TEXT NOT NULL, `avatar_normal` TEXT NOT NULL, `image_info_url` TEXT NOT NULL, `image_info_width` INTEGER NOT NULL, `image_info_height` INTEGER NOT NULL, `minisite_name` TEXT NOT NULL, `minisite_url` TEXT NOT NULL, `minisite_introduction` TEXT NOT NULL, `minisite__key` TEXT NOT NULL, `minisite_date_created` TEXT NOT NULL, `minisite_icon` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "image",
@@ -471,7 +471,7 @@
           {
             "fieldPath": "author.isTitleAuthorized",
             "columnName": "author_is_title_authorized",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -514,7 +514,7 @@
             "fieldPath": "author.gender",
             "columnName": "author_gender",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": false
           },
           {
             "fieldPath": "author.followersCount",
@@ -826,7 +826,7 @@
       },
       {
         "tableName": "guokr_handpick_content",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`image` TEXT NOT NULL, `is_replyable` INTEGER NOT NULL, `channels` TEXT NOT NULL, `channel_keys` TEXT NOT NULL, `preface` TEXT NOT NULL, `copyright` TEXT NOT NULL, `image_description` TEXT NOT NULL, `content` TEXT NOT NULL, `is_show_summary` INTEGER NOT NULL, `minisite_key` TEXT NOT NULL, `subject_key` TEXT NOT NULL, `tags` TEXT NOT NULL, `date_published` TEXT NOT NULL, `replies_count` INTEGER NOT NULL, `is_author_external` INTEGER NOT NULL, `recommends_count` INTEGER NOT NULL, `title_hide` TEXT NOT NULL, `date_modified` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `id` INTEGER NOT NULL, `small_image` TEXT NOT NULL, `summary` TEXT NOT NULL, `ukey_author` TEXT NOT NULL, `date_created` TEXT NOT NULL, `resource_url` TEXT NOT NULL, `channel_url` TEXT NOT NULL, `channel_date_created` TEXT NOT NULL, `channel_name` TEXT NOT NULL, `channel_key` TEXT NOT NULL, `channel_articles_count` INTEGER NOT NULL, `author_ukey` TEXT NOT NULL, `author_is_title_authorized` TEXT NOT NULL, `author_nickname` TEXT NOT NULL, `author_master_category` TEXT NOT NULL, `author_amended_reliability` TEXT NOT NULL, `author_is_exists` INTEGER NOT NULL, `author_title` TEXT NOT NULL, `author_url` TEXT NOT NULL, `author_gender` TEXT NOT NULL, `author_followers_count` INTEGER NOT NULL, `author_resource_url` TEXT NOT NULL, `avatar_large` TEXT NOT NULL, `avatar_small` TEXT NOT NULL, `avatar_normal` TEXT NOT NULL, `image_info_url` TEXT NOT NULL, `image_info_width` INTEGER NOT NULL, `image_info_height` INTEGER NOT NULL, `minisite_name` TEXT NOT NULL, `minisite_url` TEXT NOT NULL, `minisite_introduction` TEXT NOT NULL, `minisite__key` TEXT NOT NULL, `minisite_date_created` TEXT NOT NULL, `minisite_icon` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`image` TEXT NOT NULL, `is_replyable` INTEGER NOT NULL, `channels` TEXT NOT NULL, `channel_keys` TEXT NOT NULL, `preface` TEXT NOT NULL, `copyright` TEXT NOT NULL, `image_description` TEXT NOT NULL, `content` TEXT NOT NULL, `is_show_summary` INTEGER NOT NULL, `minisite_key` TEXT NOT NULL, `subject_key` TEXT NOT NULL, `tags` TEXT NOT NULL, `date_published` TEXT NOT NULL, `replies_count` INTEGER NOT NULL, `is_author_external` INTEGER NOT NULL, `recommends_count` INTEGER NOT NULL, `title_hide` TEXT NOT NULL, `date_modified` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `id` INTEGER NOT NULL, `small_image` TEXT NOT NULL, `summary` TEXT NOT NULL, `ukey_author` TEXT NOT NULL, `date_created` TEXT NOT NULL, `resource_url` TEXT NOT NULL, `channel_url` TEXT NOT NULL, `channel_date_created` TEXT NOT NULL, `channel_name` TEXT NOT NULL, `channel_key` TEXT NOT NULL, `channel_articles_count` INTEGER NOT NULL, `author_ukey` TEXT NOT NULL, `author_is_title_authorized` INTEGER NOT NULL, `author_nickname` TEXT NOT NULL, `author_master_category` TEXT NOT NULL, `author_amended_reliability` TEXT NOT NULL, `author_is_exists` INTEGER NOT NULL, `author_title` TEXT NOT NULL, `author_url` TEXT NOT NULL, `author_gender` TEXT, `author_followers_count` INTEGER NOT NULL, `author_resource_url` TEXT NOT NULL, `avatar_large` TEXT NOT NULL, `avatar_small` TEXT NOT NULL, `avatar_normal` TEXT NOT NULL, `image_info_url` TEXT NOT NULL, `image_info_width` INTEGER NOT NULL, `image_info_height` INTEGER NOT NULL, `minisite_name` TEXT NOT NULL, `minisite_url` TEXT NOT NULL, `minisite_introduction` TEXT NOT NULL, `minisite__key` TEXT NOT NULL, `minisite_date_created` TEXT NOT NULL, `minisite_icon` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "image",
@@ -1023,7 +1023,7 @@
           {
             "fieldPath": "author.isTitleAuthorized",
             "columnName": "author_is_title_authorized",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -1066,7 +1066,7 @@
             "fieldPath": "author.gender",
             "columnName": "author_gender",
             "affinity": "TEXT",
-            "notNull": true
+            "notNull": false
           },
           {
             "fieldPath": "author.followersCount",
@@ -1165,7 +1165,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, \"3982e426923077d36944650a68cc43b4\")"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, \"6a1a9687ab0f964935f150c532ae6ba1\")"
     ]
   }
 }

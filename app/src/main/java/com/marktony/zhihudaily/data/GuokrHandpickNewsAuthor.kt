@@ -42,7 +42,7 @@ data class GuokrHandpickNewsAuthor(
         @ColumnInfo(name = "author_is_title_authorized")
         @Expose
         @SerializedName("is_title_authorized")
-        val isTitleAuthorized: String,
+        val isTitleAuthorized: Boolean,
 
         @ColumnInfo(name = "author_nickname")
         @Expose
@@ -77,7 +77,7 @@ data class GuokrHandpickNewsAuthor(
         @ColumnInfo(name = "author_gender")
         @Expose
         @SerializedName("gender")
-        val gender: String,
+        val gender: String?,
 
         @ColumnInfo(name = "author_followers_count")
         @Expose

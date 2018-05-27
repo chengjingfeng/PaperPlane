@@ -61,9 +61,9 @@ class ZhihuDailyNewsLocalDataSourceTest {
         private val DEFAULT_IS_FAVORITE_1 = false
         private val DEFAULT_IS_FAVORITE_2 = false
         private val DEFAULT_IS_FAVORITE_3 = false
-        private val DEFAULT_TIMESTAP_1 = 1527333963L
-        private val DEFAULT_TIMESTAP_2 = 1527337920L
-        private val DEFAULT_TIMESTAP_3 = 1527340803L
+        private val DEFAULT_TIMESTAMP_1 = 1527333963L
+        private val DEFAULT_TIMESTAMP_2 = 1527337920L
+        private val DEFAULT_TIMESTAMP_3 = 1527340803L
     }
 
     @Before
@@ -91,26 +91,27 @@ class ZhihuDailyNewsLocalDataSourceTest {
 
     @Test
     fun saveItem_retrievesItem() = runBlockingSilent {
-        // Given a new zhihu daily news story
-        val newStory1 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, DEFAULT_IS_FAVORITE_1, DEFAULT_TIMESTAP_1)
-        val newStory2 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_2, DEFAULT_TYPE, DEFAULT_ID_2, DEFAULT_GA_PREFIX_2, DEFAULT_TITLE_2, DEFAULT_IS_FAVORITE_2, DEFAULT_TIMESTAP_2)
-        val newStory3 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_3, DEFAULT_TYPE, DEFAULT_ID_3, DEFAULT_GA_PREFIX_3, DEFAULT_TITLE_3, DEFAULT_IS_FAVORITE_3, DEFAULT_TIMESTAP_3)
+        // Given several new zhihu daily news stories
+        val newStory1 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, DEFAULT_IS_FAVORITE_1, DEFAULT_TIMESTAMP_1)
+        val newStory2 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_2, DEFAULT_TYPE, DEFAULT_ID_2, DEFAULT_GA_PREFIX_2, DEFAULT_TITLE_2, DEFAULT_IS_FAVORITE_2, DEFAULT_TIMESTAMP_2)
+        val newStory3 = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_3, DEFAULT_TYPE, DEFAULT_ID_3, DEFAULT_GA_PREFIX_3, DEFAULT_TITLE_3, DEFAULT_IS_FAVORITE_3, DEFAULT_TIMESTAMP_3)
 
         with(localDataSource) {
             // When saved into the persistent repository
             saveAll(listOf(newStory1, newStory2, newStory3))
 
-            val allResult = getZhihuDailyNews(false, false, DEFAULT_TIMESTAP_3)
+            val allResult = getZhihuDailyNews(false, false, DEFAULT_TIMESTAMP_3)
             assertThat(allResult, instanceOf(Result.Success::class.java))
+
             if (allResult is Result.Success) {
                 assertThat(allResult.data.size, `is`(3))
             }
 
-            // Then the task can be retrieved from the persistent repository
+            // Then the zhihu daily news stories can be retrieved from the persistent repository
             val result = getItem(newStory1.id)
             assertThat(result, instanceOf(Result.Success::class.java))
             if (result is Result.Success) {
-                assertThat(result.data, `is`(newStory1))
+                assertItem(result.data, DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, DEFAULT_IS_FAVORITE_1, DEFAULT_TIMESTAMP_1)
             }
         }
     }
@@ -118,7 +119,7 @@ class ZhihuDailyNewsLocalDataSourceTest {
     @Test
     fun favoriteItem_retrievesFavorites() = runBlockingSilent {
         // Given a new zhihu daily news story
-        val newStory = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, DEFAULT_IS_FAVORITE_1, DEFAULT_TIMESTAP_1)
+        val newStory = ZhihuDailyNewsQuestion(DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, DEFAULT_IS_FAVORITE_1, DEFAULT_TIMESTAMP_1)
         localDataSource.saveAll(listOf(newStory))
 
         // When favorited in the persistent repository
@@ -128,7 +129,7 @@ class ZhihuDailyNewsLocalDataSourceTest {
         val result = localDataSource.getItem(newStory.id)
         assertThat(result, instanceOf(Result.Success::class.java))
         if (result is Result.Success) {
-            assertItem(result.data, DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, true, DEFAULT_TIMESTAP_1)
+            assertItem(result.data, DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, true, DEFAULT_TIMESTAMP_1)
             assertThat(result.data.isFavorite, `is`(true))
         }
 
@@ -137,7 +138,7 @@ class ZhihuDailyNewsLocalDataSourceTest {
         assertThat(result, instanceOf(Result.Success::class.java))
         if (favorites is Result.Success) {
             assertThat(favorites.data.size, `is`(1))
-            assertItem(favorites.data.first(), DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, true, DEFAULT_TIMESTAP_1)
+            assertItem(favorites.data.first(), DEFAULT_IMAGES_1, DEFAULT_TYPE, DEFAULT_ID_1, DEFAULT_GA_PREFIX_1, DEFAULT_TITLE_1, true, DEFAULT_TIMESTAMP_1)
         }
     }
 
