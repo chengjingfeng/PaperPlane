@@ -21,17 +21,17 @@
     <font
         android:fontStyle="normal"
         android:fontWeight="400"
-        android:font="@font/product_sans_regular"
+        android:font="@font/roboto_regular"
         app:fontStyle="normal"
         app:fontWeight="400"
-        app:font="@font/product_sans_regular"/>
+        app:font="@font/roboto_regular" />
 
     <font
         android:fontStyle="italic"
         android:fontWeight="400"
-        android:font="@font/product_sans_italic"
+        android:font="@font/roboto_italic"
         app:fontStyle="italic"
         app:fontWeight="400"
-        app:font="@font/product_sans_italic"/>
+        app:font="@font/roboto_italic" />
 
 </font-family>
